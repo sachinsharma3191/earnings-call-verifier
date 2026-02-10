@@ -25,9 +25,9 @@ function About() {
         <div className="card p-6 border-green-500/30 bg-green-900/10">
           <h3 className="text-lg font-semibold mb-3 text-green-400">The Solution</h3>
           <p className="text-gray-300">
-            Automated verification system that extracts claims from transcripts, 
-            compares them with official SEC data, and flags discrepancies beyond 
-            tolerance thresholds.
+            Our system leverages a Node.js and TypeScript backend hosted on Vercel, 
+            combined with the power of Claude Skill for claim extraction, 
+            to automate the verification process and provide accurate results.
           </p>
         </div>
       </div>
@@ -50,7 +50,7 @@ function About() {
             <div>
               <h4 className="font-semibold mb-2">Automated Extraction</h4>
               <p className="text-sm text-gray-400">
-                Pattern matching and LLM-powered extraction of quantitative claims from transcripts
+                LLM-powered extraction via Claude Skills (Claude does extraction and calls this API for verification)
               </p>
             </div>
           </div>
@@ -135,9 +135,9 @@ function About() {
           <div>
             <h4 className="font-semibold mb-3 text-purple-400">Backend</h4>
             <ul className="space-y-2 text-sm text-gray-300">
-              <li>• Python 3.x</li>
+              <li>• Node.js + TypeScript</li>
+              <li>• Vercel Serverless Functions</li>
               <li>• SEC EDGAR API</li>
-              <li>• JSON Data Storage</li>
               <li>• Pattern Matching</li>
             </ul>
           </div>
@@ -160,10 +160,9 @@ function About() {
           <div>
             <h4 className="font-semibold mb-2">Overall Statistics</h4>
             <ul className="space-y-1 text-gray-300">
-              <li>• 29 claims analyzed across 3 companies</li>
-              <li>• 34.5% overall accuracy rate</li>
-              <li>• 11 discrepancies detected (38%)</li>
-              <li>• Average discrepancy: 3.6%</li>
+              <li>• SEC financial verification supported for 10+ companies</li>
+              <li>• Last 4 quarters of SEC 10-Q data pulled via EDGAR XBRL facts</li>
+              <li>• Claim-level accuracy depends on transcript availability (Claude Skill extracts claims)</li>
             </ul>
           </div>
           <div>

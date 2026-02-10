@@ -3,7 +3,7 @@
  * Handles all HTTP requests to the Flask backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 class APIClient {
   constructor(baseURL = API_BASE_URL) {
@@ -93,6 +93,67 @@ class APIClient {
 
   async getStatistics() {
     return this.request('/verification/statistics');
+  }
+
+  // ML Endpoints
+  async analyzeSentiment(text, context = '') {
+    return this.request('/ml/analyze-sentiment', {
+      method: 'POST',
+      body: JSON.stringify({ text, context }),
+    });
+  }
+
+  async classifyClaim(text, context = '') {
+    return this.request('/ml/classify-claim', {
+      method: 'POST',
+      body: JSON.stringify({ text, context }),
+    });
+  }
+
+  async detectAnomalies(claims) {
+    return this.request('/ml/detect-anomalies', {
+      method: 'POST',
+      body: JSON.stringify({ claims }),
+    });
+  }
+
+  async predictAccuracy(claim) {
+    return this.request('/ml/predict-accuracy', {
+      method: 'POST',
+      body: JSON.stringify({ claim }),
+    });
+  }
+
+  async enhanceClaims(claims) {
+    return this.request('/ml/enhance-claims', {
+      method: 'POST',
+      body: JSON.stringify({ claims }),
+    });
+  }
+
+  async analyzeTranscript(transcript, ticker, quarter) {
+    return this.request('/ml/analyze-transcript', {
+      method: 'POST',
+      body: JSON.stringify({ transcript, ticker, quarter }),
+    });
+  }
+
+  async getExecutiveSentiment(claims) {
+    return this.request('/ml/executive-sentiment', {
+      method: 'POST',
+      body: JSON.stringify({ claims }),
+    });
+  }
+
+  async getSentimentVerificationCorrelation(claims) {
+    return this.request('/ml/sentiment-verification-correlation', {
+      method: 'POST',
+      body: JSON.stringify({ claims }),
+    });
+  }
+
+  async getMLHealth() {
+    return this.request('/ml/health');
   }
 }
 

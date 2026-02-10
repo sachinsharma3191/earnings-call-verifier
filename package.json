@@ -1,0 +1,19 @@
+{
+  "name": "earnings-call-verifier",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "ui"
+  ],
+  "scripts": {
+    "dev": "npm --prefix ui run dev",
+    "sync:api": "node scripts/sync-api.mjs",
+    "build": "npm run sync:api && npm --prefix ui install && npm --prefix ui run build",
+    "preview": "npm --prefix ui run preview"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
