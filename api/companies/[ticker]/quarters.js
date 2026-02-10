@@ -1,25 +1,6 @@
 import { SECDataService } from '../../_lib/services/SECDataService.js';
 import { getTranscriptSource } from '../../_lib/data/transcriptSources.js';
-
-const TICKER_TO_CIK = {
-  'AAPL': '0000320193',
-  'NVDA': '0001045810',
-  'MSFT': '0000789019',
-  'GOOGL': '0001652044',
-  'AMZN': '0001018724',
-  'META': '0001326801',
-  'TSLA': '0001318605',
-  'JPM': '0000019617',
-  'JNJ': '0000200406',
-  'WMT': '0000104169'
-};
-
-const STATIC_QUARTERS = [
-  { quarter: 'Q4 2025', endDate: '2025-12-31', filed: '2026-01-31' },
-  { quarter: 'Q3 2025', endDate: '2025-09-30', filed: '2025-10-31' },
-  { quarter: 'Q2 2025', endDate: '2025-06-30', filed: '2025-07-31' },
-  { quarter: 'Q1 2025', endDate: '2025-03-31', filed: '2025-04-30' }
-];
+import { TICKER_TO_CIK, STATIC_QUARTERS } from '../../_lib/constants/index.js';
 
 export default async function handler(req, res) {
   const { ticker } = req.query;

@@ -1,18 +1,8 @@
+import { COMPANY_CIKS } from './constants/index.js';
+
 const BASE_URL = "https://data.sec.gov/api/xbrl/companyfacts";
 
-export const COMPANY_CIKS = {
-  AAPL: "0000320193",
-  MSFT: "0000789019",
-  NVDA: "0001045810",
-  GOOGL: "0001652044",
-  AMZN: "0001018724",
-  META: "0001326801",
-  TSLA: "0001318605",
-  JPM: "0000019617",
-  JNJ: "0000200406",
-  WMT: "0000104169",
-  KO: "0000021344"
-};
+export { COMPANY_CIKS };
 
 export async function getCompanyFacts(ticker) {
   const cik = COMPANY_CIKS[ticker.toUpperCase()];
