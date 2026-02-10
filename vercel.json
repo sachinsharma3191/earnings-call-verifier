@@ -1,5 +1,6 @@
 {
   "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
   "outputDirectory": "ui/dist",
   "installCommand": "npm install && npm --prefix ui install",
   "rewrites": [
