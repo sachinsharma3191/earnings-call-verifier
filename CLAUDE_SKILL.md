@@ -46,6 +46,35 @@ After deploy, note your Vercel domain, e.g.:
 
 > Note: The OpenAPI spec contains a placeholder `servers:` URL. Claude usually uses the tool’s configured base URL. If your Claude UI requires the server URL inside the spec to match, replace `https://YOUR_VERCEL_DOMAIN` in the spec with your real Vercel URL.
 
+## Claim JSON schema (what Claude should output)
+
+Claude should produce an array of claim objects like:
+
+```json
+[
+  {
+    "id": "NVDA_Q4_2024_001",
+    "speaker": "Jensen Huang",
+    "role": "CEO",
+    "text": "Q4 revenue came in at $29.1 billion",
+    "metric": "Revenue",
+    "claimed": 29.1,
+    "unit": "billion",
+    "context": "...optional surrounding quote/context..."
+  }
+]
+```
+
+Required fields for verification:
+
+- `metric`
+- `claimed` (number)
+- `unit` (`billion` or `percent`)
+
+Recommended fields:
+
+- `text`, `speaker`, `role`, `context`
+
 ## Step 3: How to use it in Claude (example prompt)
 
 Paste an earnings call transcript into Claude and ask:
@@ -64,9 +93,11 @@ Quarter: Q4 2024
 
 Task:
 1) Extract quantitative claims from the transcript below.
-2) Convert them into an array of claims with fields: metric, claimed, unit, text, speaker, role.
-3) Call the verifier tool to verify the claims against SEC.
-4) Return a table of: claim text, claimed value, actual value, discrepancy, severity.
+2) Convert them into an array of JSON claims with fields: metric, claimed, unit, text, speaker, role, context.
+3) Call POST /api/verification/verify with { ticker, quarter, claims }.
+4) Return:
+   - a markdown table of: claim text, claimed value, actual value, discrepancy, severity
+   - plus a short bullet list explaining any misleading framing (optimistic bias / cherry-picking / percent vs absolute framing).
 
 Transcript:
 <PASTE TRANSCRIPT>

@@ -107,7 +107,7 @@ function App() {
             </div>
             <div className="flex items-center space-x-4 text-sm text-gray-400">
               <a 
-                href="https://github.com" 
+                href="https://github.com/sachinsharma3191/earnings-call-verifier" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="hover:text-white transition-colors"

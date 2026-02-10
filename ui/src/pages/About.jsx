@@ -182,7 +182,7 @@ function About() {
         <h3 className="text-2xl font-bold mb-6">Project Links</h3>
         <div className="flex flex-col space-y-4">
           <a 
-            href="https://github.com" 
+            href="https://github.com/sachinsharma3191/earnings-call-verifier" 
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center space-x-3 text-blue-400 hover:text-blue-300 transition-colors"
