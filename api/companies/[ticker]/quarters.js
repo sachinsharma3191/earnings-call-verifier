@@ -1,4 +1,4 @@
-import { SECDataService } from '../../_lib/services/SECDataService';
+import { SECDataService } from '../../_lib/services/SECDataService.js';
 
 const TICKER_TO_CIK = {
   'AAPL': '0000320193',

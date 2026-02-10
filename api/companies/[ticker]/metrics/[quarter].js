@@ -1,5 +1,5 @@
-import { CompanyController } from '../../../_lib/controllers/CompanyController';
-import { createApiHandler } from '../../../_lib/middleware/apiHandler';
+import { CompanyController } from '../../../_lib/controllers/CompanyController.js';
+import { createApiHandler } from '../../../_lib/middleware/apiHandler.js';
 
 export default createApiHandler(async (req, res) => {
   const { ticker, quarter } = req.query;

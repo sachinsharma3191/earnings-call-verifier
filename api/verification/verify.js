@@ -1,5 +1,5 @@
-import { SECDataService } from '../_lib/services/SECDataService';
-import { ClaimVerificationService } from '../_lib/services/ClaimVerificationService';
+import { SECDataService } from '../_lib/services/SECDataService.js';
+import { ClaimVerificationService } from '../_lib/services/ClaimVerificationService.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

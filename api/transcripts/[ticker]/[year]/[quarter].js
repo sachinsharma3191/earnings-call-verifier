@@ -1,4 +1,4 @@
-import { FinnhubTranscriptService } from '../../../_lib/services/FinnhubTranscriptService';
+import { FinnhubTranscriptService } from '../../../_lib/services/FinnhubTranscriptService.js';
 
 export default async function handler(req, res) {
   const { ticker, year, quarter } = req.query;
