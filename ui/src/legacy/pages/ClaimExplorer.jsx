@@ -26,6 +26,37 @@ function ClaimExplorer({ companies }) {
     return claims;
   }, [companies]);
 
+  // Calculate executive statistics
+  const executiveStats = useMemo(() => {
+    const stats = {};
+    allClaims.forEach(claim => {
+      const exec = claim.speaker || 'Unknown';
+      if (!stats[exec]) {
+        stats[exec] = {
+          speaker: exec,
+          role: claim.role || 'Unknown',
+          totalClaims: 0,
+          accurate: 0,
+          discrepant: 0,
+          unverifiable: 0
+        };
+      }
+      stats[exec].totalClaims++;
+      if (claim.status === 'accurate') stats[exec].accurate++;
+      else if (claim.status === 'discrepant') stats[exec].discrepant++;
+      else if (claim.status === 'unverifiable') stats[exec].unverifiable++;
+    });
+    
+    return Object.values(stats).map(stat => {
+      const verifiable = stat.accurate + stat.discrepant;
+      const accuracyScore = verifiable > 0 ? (stat.accurate / verifiable) * 100 : 0;
+      return {
+        ...stat,
+        accuracyScore: Math.round(accuracyScore * 10) / 10
+      };
+    }).sort((a, b) => b.totalClaims - a.totalClaims);
+  }, [allClaims]);
+
   // Filter claims
   const filteredClaims = useMemo(() => {
     return allClaims.filter(claim => {
@@ -59,9 +90,45 @@ function ClaimExplorer({ companies }) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold mb-2">Claims Explorer</h2>
-        <p className="text-gray-400">Search and filter all extracted claims across companies and quarters</p>
+        <h2 className="text-2xl font-bold mb-2">Claims Explorer</h2>
+        <p className="text-gray-400">Search and filter verified claims from earnings calls</p>
       </div>
+
+      {/* Executive Analysis Summary */}
+      {executiveStats.length > 0 && (
+        <div className="card p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <User className="h-5 w-5 mr-2 text-blue-400" />
+            Executive Accuracy Analysis
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {executiveStats.map((exec, idx) => (
+              <div key={idx} className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <div className="font-semibold text-white">{exec.speaker}</div>
+                    <div className="text-xs text-gray-400">{exec.role}</div>
+                  </div>
+                  <div className={`text-2xl font-bold ${
+                    exec.accuracyScore >= 80 ? 'text-green-400' :
+                    exec.accuracyScore >= 60 ? 'text-yellow-400' : 'text-red-400'
+                  }`}>
+                    {exec.accuracyScore}%
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">{exec.totalClaims} claims</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-green-400">✓ {exec.accurate}</span>
+                    <span className="text-red-400">✗ {exec.discrepant}</span>
+                    <span className="text-gray-500">? {exec.unverifiable}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="card p-6">

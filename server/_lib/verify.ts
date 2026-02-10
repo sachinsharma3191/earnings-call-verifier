@@ -27,7 +27,12 @@ export function findQuarterData(quarters: QuarterData[], quarterStr: string): Qu
 }
 
 export function verifySingleClaim(claim: Claim, metrics: Record<string, number>): any {
-  const verified: any = { ...claim };
+  const verified: any = { 
+    ...claim,
+    speaker: claim.speaker || 'Unknown',
+    role: claim.role || 'Unknown',
+    verificationTimestamp: new Date().toISOString()
+  };
 
   const metricType = (claim.metric ?? "").toLowerCase();
   const claimedValue = Number(claim.claimed);
@@ -46,6 +51,11 @@ export function verifySingleClaim(claim: Claim, metrics: Record<string, number>)
   if (actualValue === undefined || actualValue === null) {
     verified.status = "unverifiable";
     verified.reason = "Metric not available in SEC data";
+    verified.actual = null;
+    verified.difference = null;
+    verified.percentDiff = null;
+    verified.flag = null;
+    verified.severity = "low";
     return verified;
   }
 
@@ -90,11 +100,42 @@ export function calculateSummary(verifiedClaims: any[]): any {
   const verifiable = accurate + discrepant;
   const accuracyScore = verifiable > 0 ? (accurate / verifiable) * 100 : 0;
 
+  // Executive-specific analysis
+  const executiveStats: Record<string, any> = {};
+  verifiedClaims.forEach((claim) => {
+    const exec = claim.speaker || 'Unknown';
+    if (!executiveStats[exec]) {
+      executiveStats[exec] = {
+        speaker: exec,
+        role: claim.role || 'Unknown',
+        totalClaims: 0,
+        accurate: 0,
+        discrepant: 0,
+        unverifiable: 0
+      };
+    }
+    executiveStats[exec].totalClaims++;
+    if (claim.status === 'accurate') executiveStats[exec].accurate++;
+    else if (claim.status === 'discrepant') executiveStats[exec].discrepant++;
+    else if (claim.status === 'unverifiable') executiveStats[exec].unverifiable++;
+  });
+
+  // Calculate accuracy per executive
+  const byExecutive = Object.values(executiveStats).map((stat: any) => {
+    const verifiableExec = stat.accurate + stat.discrepant;
+    const accuracyExec = verifiableExec > 0 ? (stat.accurate / verifiableExec) * 100 : 0;
+    return {
+      ...stat,
+      accuracyScore: Math.round(accuracyExec * 10) / 10
+    };
+  });
+
   return {
     accurate,
     discrepant,
     unverifiable,
-    accuracyScore: Math.round(accuracyScore * 10) / 10
+    accuracyScore: Math.round(accuracyScore * 10) / 10,
+    byExecutive
   };
 }
 

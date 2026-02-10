@@ -161,12 +161,38 @@ function ClaimExplorer({ companies }) {
           />
           {verifyError && <div className="mt-3 text-sm text-red-300">{verifyError}</div>}
           {verificationResult?.summary && (
-            <div className="mt-3 text-sm text-gray-300">
-              Summary:
-              <span className="ml-2 text-green-400">accurate {verificationResult.summary.accurate}</span>
-              <span className="ml-2 text-red-400">discrepant {verificationResult.summary.discrepant}</span>
-              <span className="ml-2 text-gray-400">unverifiable {verificationResult.summary.unverifiable}</span>
-              <span className="ml-2 text-blue-300">accuracy {verificationResult.summary.accuracyScore}%</span>
+            <div className="mt-3 space-y-2">
+              <div className="text-sm text-gray-300">
+                <span className="font-semibold">Overall Summary:</span>
+                <span className="ml-2 text-green-400">✓ {verificationResult.summary.accurate} accurate</span>
+                <span className="ml-2 text-red-400">✗ {verificationResult.summary.discrepant} discrepant</span>
+                <span className="ml-2 text-gray-400">? {verificationResult.summary.unverifiable} unverifiable</span>
+                <span className="ml-2 text-blue-300 font-semibold">{verificationResult.summary.accuracyScore}% accuracy</span>
+              </div>
+              {verificationResult.summary.byExecutive && verificationResult.summary.byExecutive.length > 0 && (
+                <div className="text-sm text-gray-300 pt-2 border-t border-gray-700">
+                  <span className="font-semibold">By Executive:</span>
+                  <div className="mt-2 space-y-1">
+                    {verificationResult.summary.byExecutive.map((exec, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-gray-800/50 px-3 py-2 rounded">
+                        <div>
+                          <span className="text-white font-medium">{exec.speaker}</span>
+                          <span className="text-gray-400 text-xs ml-2">({exec.role})</span>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <span className="text-xs text-gray-400">{exec.totalClaims} claims</span>
+                          <span className="text-green-400 text-xs">✓ {exec.accurate}</span>
+                          <span className="text-red-400 text-xs">✗ {exec.discrepant}</span>
+                          <span className={`text-xs font-semibold ${
+                            exec.accuracyScore >= 80 ? 'text-green-400' :
+                            exec.accuracyScore >= 60 ? 'text-yellow-400' : 'text-red-400'
+                          }`}>{exec.accuracyScore}%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -300,8 +326,11 @@ function ClaimExplorer({ companies }) {
               </div>
 
               {/* Claim Text */}
-              <div className="bg-gray-700/30 rounded-lg p-4 mb-4">
-                <p className="text-gray-300 italic leading-relaxed">"{claim.text}"</p>
+              <div className="mb-4">
+                <p className="text-gray-300 leading-relaxed italic">"{claim.text}"</p>
+                {claim.context && (
+                  <p className="text-xs text-gray-500 mt-2">Context: {claim.context}</p>
+                )}
               </div>
 
               {/* Comparison */}
