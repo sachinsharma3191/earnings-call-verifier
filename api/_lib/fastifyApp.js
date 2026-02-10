@@ -43,64 +43,47 @@ async function buildApp() {
     };
   });
 
-  app.get("/api/companies", async () => {
-    const tickers = getAvailableTickers();
-    const companies = tickers.map((ticker) => ({ ticker, cik: COMPANY_CIKS[ticker] }));
-    return { companies, total: companies.length };
+  // Import the new endpoint handlers
+  app.get("/api/companies", async (req, reply) => {
+    const companiesHandler = await import('../companies/index.js');
+    return companiesHandler.default({ query: {} }, { 
+      status: (code) => ({ 
+        json: (data) => { 
+          reply.code(code); 
+          return data; 
+        } 
+      }) 
+    });
   });
 
   app.get("/api/companies/:ticker", async (req, reply) => {
-    const ticker = String(req.params.ticker).toUpperCase();
-    const quarters = req.query?.quarters ? Number(req.query.quarters) : 4;
-
-    // Use SECDataService for robust data fetching
-    // Note: getCompanyFinancials in SECDataService fetches all available quarters (cached/live)
-    // We slice to the requested number if needed, but the service returns 'quarters' array.
-
-    // We need the CIK. SECDataService.getCompanyFinancials takes CIK.
-    const cik = COMPANY_CIKS[ticker];
-    if (!cik) {
-      reply.code(404);
-      return { error: `Company ${ticker} not found` };
-    }
-
-    try {
-      const financials = await secService.getCompanyFinancials(cik);
-
-      // Return only requested number of quarters
-      if (financials && financials.quarters) {
-        financials.quarters = financials.quarters.slice(0, quarters);
+    const tickerHandler = await import('../companies/[ticker].js');
+    return tickerHandler.default(
+      { query: { ticker: req.params.ticker } }, 
+      { 
+        status: (code) => ({ 
+          json: (data) => { 
+            reply.code(code); 
+            return data; 
+          } 
+        }) 
       }
-
-      return financials;
-    } catch (error) {
-      req.log.error(error);
-      reply.code(404); // Or 500 depending on error
-      return { error: `Company ${ticker} not found or data unavailable` };
-    }
+    );
   });
 
   app.get("/api/companies/:ticker/quarters", async (req, reply) => {
-    const ticker = String(req.params.ticker).toUpperCase();
-    const cik = COMPANY_CIKS[ticker];
-    if (!cik) {
-      reply.code(404);
-      return { error: `Company ${ticker} not found` };
-    }
-    const financials = await secService.getCompanyFinancials(cik);
-
-    if (!financials) {
-      reply.code(404);
-      return { error: `Company ${ticker} not found` };
-    }
-
-    const quarters = financials.quarters.map((q) => ({
-      quarter: `${q.fiscal_period} ${q.fiscal_year}`,
-      end_date: q.end_date,
-      filed: q.filed
-    }));
-
-    return { ticker, quarters, total: quarters.length };
+    const quartersHandler = await import('../companies/[ticker]/quarters.js');
+    return quartersHandler.default(
+      { query: { ticker: req.params.ticker } }, 
+      { 
+        status: (code) => ({ 
+          json: (data) => { 
+            reply.code(code); 
+            return data; 
+          } 
+        }) 
+      }
+    );
   });
 
   app.get("/api/companies/:ticker/metrics/:quarter", async (req, reply) => {
