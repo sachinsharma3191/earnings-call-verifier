@@ -181,8 +181,7 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
             <span className="text-red-300">Top Discrepancies Detected</span>
             <button
               onClick={fetchDiscrepancies}
-              disabled={discRefreshing}
-              className="ml-3 p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-all disabled:opacity-50"
+              className="ml-3 p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-all"
               title="Refresh discrepancies"
             >
               <RefreshCw className={`h-4 w-4 ${discRefreshing ? 'animate-spin' : ''}`} />
@@ -231,8 +230,7 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
             <p className="text-gray-400 mb-3">No discrepancies detected yet. Cache may still be loading.</p>
             <button
               onClick={fetchDiscrepancies}
-              disabled={discRefreshing}
-              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-medium transition-colors inline-flex items-center gap-2"
             >
               <RefreshCw className={`h-4 w-4 ${discRefreshing ? 'animate-spin' : ''}`} />
               {discRefreshing ? 'Loading...' : 'Refresh Discrepancies'}
