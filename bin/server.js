@@ -1,6 +1,6 @@
 
-import { getFastifyApp } from './_lib/fastifyApp.js';
-import './_lib/init.js'; // Auto-initialize cache on startup
+import { getFastifyApp } from '../api/_lib/fastifyApp.js';
+import '../api/_lib/init.js'; // Auto-initialize cache on startup
 
 const start = async () => {
     try {
