@@ -1,3 +1,4 @@
+
 // Single Responsibility: Handle SEC EDGAR data fetching and processing
 
 export class SECDataService {
@@ -26,7 +27,7 @@ export class SECDataService {
 
     return {
       cik: data.cik,
-      name: data.entityName,
+      company_name: data.entityName,
       ticker: this.extractTicker(data),
       quarters
     };
@@ -44,26 +45,55 @@ export class SECDataService {
   extractQuarterlyData(data) {
     const facts = data.facts?.['us-gaap'] || {};
     const quartersMap = new Map();
-    const currentYear = new Date().getFullYear();
-    const minYear = currentYear - 1; // Only last 1 year (2025-2026 if current is 2026)
 
-    const revenueData = facts.Revenues?.units?.USD || facts.RevenueFromContractWithCustomerExcludingAssessedTax?.units?.USD || [];
-    
+    const revenueData1 = facts.Revenues?.units?.USD || [];
+    const revenueData2 = facts.RevenueFromContractWithCustomerExcludingAssessedTax?.units?.USD || [];
+    const revenueData = [...revenueData1, ...revenueData2];
+
+    // console.log(`[SECDataService] Revenue data points found: ${revenueData.length}`);
+
     revenueData.forEach((item) => {
-      // Extract quarter from frame field (e.g., "CY2024Q3" -> "Q3")
-      const frameMatch = item.frame?.match(/Q(\d)$/);
-      if (frameMatch && item.end) {
-        const quarter = `Q${frameMatch[1]}`;
-        const year = new Date(item.end).getFullYear();
-        
-        // Filter: only include data from last 1 year (2025-2026)
-        if (year < minYear) {
-          return; // Skip old data
+      let quarter = null;
+      let year = null;
+
+      // Strategy: Prioritize 'fp' (Fiscal Period) and 'fy' (Fiscal Year)
+      if (item.fp && item.fy) {
+        if (item.fp.startsWith('Q')) {
+          quarter = item.fp;
+          year = item.fy;
         }
-        
-        const key = `${year}-${quarter}`;
-        
-        // Only keep the most recent filing for each quarter
+      }
+
+      // Fallback: 'frame' field
+      if (!quarter && item.frame) {
+        const frameMatch = item.frame.match(/Q(\d)$/);
+        if (frameMatch) {
+          quarter = `Q${frameMatch[1]}`;
+          year = new Date(item.end).getFullYear();
+        }
+      }
+
+      if (quarter && year && item.end && item.start) {
+
+        // Duration check: Ensure it's a quarterly figure (~90 days), not YTD (~270 days)
+        const startDate = new Date(item.start);
+        const endDate = new Date(item.end);
+        const durationDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+
+        // Allow some flexibility (75-105 days)
+        if (durationDays < 75 || durationDays > 105) {
+          return;
+        }
+
+        // Filter: include data from last 4 years
+        const currentYear = new Date().getFullYear();
+        if (year < currentYear - 4) {
+          return;
+        }
+
+        const key = `Q${quarter.replace('Q', '')}-${year}`; // Format: Q4-2025
+
+        // Logic: prefer the latest filing date for corrections
         if (!quartersMap.has(key) || new Date(item.filed) > new Date(quartersMap.get(key).filed)) {
           quartersMap.set(key, {
             end_date: item.end,
@@ -84,19 +114,29 @@ export class SECDataService {
     });
 
     const quarters = Array.from(quartersMap.values());
-    
-    return quarters.sort((a, b) => {
-      if (a.fiscal_year !== b.fiscal_year) {
-        return b.fiscal_year - a.fiscal_year;
-      }
-      const qOrder = { 'Q4': 4, 'Q3': 3, 'Q2': 2, 'Q1': 1 };
-      return (qOrder[b.fiscal_period] || 0) - (qOrder[a.fiscal_period] || 0);
-    }).slice(0, 4); // Limit to 4 most recent quarters
+
+    // Sort descending by date
+    return quarters.sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
   }
 
   extractMetric(facts, metricName, endDate) {
     const metricData = facts[metricName]?.units?.USD || [];
-    const match = metricData.find((item) => item.end === endDate);
-    return match?.val || 0;
+    // We strictly match endDate, but we should probably also check start date/duration to avoid YTD matching logic issues for other metrics?
+    // Usually matching 'end' is enough if the main loop filtered the quarter correctly, 
+    // BUT what if 'NetIncome' has both Q3 (3mo) and Q3 (9mo) ending on same date?
+    // We should pick the one with similar duration or smallest duration?
+    // For now, let's pick the one < 105 days.
+
+    const candidates = metricData.filter((item) => item.end === endDate);
+    if (candidates.length === 0) return 0;
+
+    // Find the one with ~90 days duration
+    const quarterly = candidates.find(item => {
+      if (!item.start) return false;
+      const d = (new Date(item.end) - new Date(item.start)) / (1000 * 60 * 60 * 24);
+      return d > 75 && d < 105;
+    });
+
+    return quarterly?.val || candidates[0]?.val || 0;
   }
 }

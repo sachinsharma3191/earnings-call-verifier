@@ -1,10 +1,12 @@
 import Fastify from "fastify";
 import swagger from "@fastify/swagger";
 
-import { getAvailableTickers, COMPANY_CIKS, getCompanyFinancials, calculateMetrics } from "./sec.js";
+import { getAvailableTickers, COMPANY_CIKS, calculateMetrics } from "./sec.js";
+import { SECDataService } from "./services/SECDataService.js";
 import { findQuarterData, verifySingleClaim, calculateSummary } from "./verify.js";
 
 let appPromise = null;
+const secService = new SECDataService();
 
 export function getFastifyApp() {
   if (!appPromise) {
@@ -51,18 +53,41 @@ async function buildApp() {
     const ticker = String(req.params.ticker).toUpperCase();
     const quarters = req.query?.quarters ? Number(req.query.quarters) : 4;
 
-    const financials = await getCompanyFinancials(ticker, quarters);
-    if (!financials) {
+    // Use SECDataService for robust data fetching
+    // Note: getCompanyFinancials in SECDataService fetches all available quarters (cached/live)
+    // We slice to the requested number if needed, but the service returns 'quarters' array.
+
+    // We need the CIK. SECDataService.getCompanyFinancials takes CIK.
+    const cik = COMPANY_CIKS[ticker];
+    if (!cik) {
       reply.code(404);
-      return { error: `Company ${ticker} not found or data unavailable` };
+      return { error: `Company ${ticker} not found` };
     }
 
-    return financials;
+    try {
+      const financials = await secService.getCompanyFinancials(cik);
+
+      // Return only requested number of quarters
+      if (financials && financials.quarters) {
+        financials.quarters = financials.quarters.slice(0, quarters);
+      }
+
+      return financials;
+    } catch (error) {
+      req.log.error(error);
+      reply.code(404); // Or 500 depending on error
+      return { error: `Company ${ticker} not found or data unavailable` };
+    }
   });
 
   app.get("/api/companies/:ticker/quarters", async (req, reply) => {
     const ticker = String(req.params.ticker).toUpperCase();
-    const financials = await getCompanyFinancials(ticker, 8);
+    const cik = COMPANY_CIKS[ticker];
+    if (!cik) {
+      reply.code(404);
+      return { error: `Company ${ticker} not found` };
+    }
+    const financials = await secService.getCompanyFinancials(cik);
 
     if (!financials) {
       reply.code(404);
@@ -81,8 +106,14 @@ async function buildApp() {
   app.get("/api/companies/:ticker/metrics/:quarter", async (req, reply) => {
     const ticker = String(req.params.ticker).toUpperCase();
     const quarter = decodeURIComponent(String(req.params.quarter));
+    const cik = COMPANY_CIKS[ticker];
 
-    const financials = await getCompanyFinancials(ticker, 8);
+    if (!cik) {
+      reply.code(404);
+      return { error: `Company ${ticker} not found` };
+    }
+
+    const financials = await secService.getCompanyFinancials(cik);
     if (!financials) {
       reply.code(404);
       return { error: `Company ${ticker} not found` };
@@ -112,7 +143,12 @@ async function buildApp() {
       return { error: "Missing required fields: ticker, quarter, claims[]" };
     }
 
-    const financials = await getCompanyFinancials(ticker.toUpperCase(), 8);
+    const cik = COMPANY_CIKS[ticker.toUpperCase()];
+    if (!cik) {
+      reply.code(404);
+      return { error: `Company ${ticker} not found` };
+    }
+    const financials = await secService.getCompanyFinancials(cik);
     if (!financials) {
       reply.code(404);
       return { error: `Company ${ticker} not found` };
@@ -141,12 +177,33 @@ async function buildApp() {
     };
   });
 
+  app.post("/api/analyze", async (req, reply) => {
+    const { ticker, quarter, year } = req.body;
+
+    if (!ticker || !quarter || !year) {
+      reply.code(400);
+      return { error: "Missing required fields: ticker, quarter, year" };
+    }
+
+    try {
+      // Lazy load pipeline to avoid circular dependencies or init issues
+      const { AnalysisPipeline } = await import("./services/AnalysisPipeline.js");
+      const pipeline = new AnalysisPipeline();
+      const result = await pipeline.runAnalysis(ticker.toUpperCase(), quarter, year);
+      return result;
+    } catch (error) {
+      req.log.error(error);
+      reply.code(500);
+      return { error: "Analysis failed", details: error.message };
+    }
+  });
+
   app.get("/api/openapi", async (req, reply) => {
-    const xfProto = req.headers?.["x-forwarded-proto"]; 
+    const xfProto = req.headers?.["x-forwarded-proto"];
     const proto = Array.isArray(xfProto) ? xfProto[0] : xfProto;
     const scheme = proto || "https";
 
-    const xfHost = req.headers?.["x-forwarded-host"]; 
+    const xfHost = req.headers?.["x-forwarded-host"];
     const hostHeader = Array.isArray(xfHost) ? xfHost[0] : xfHost;
     const host = hostHeader || req.headers?.host || "localhost";
 

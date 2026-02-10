@@ -8,9 +8,16 @@
     "dev": "npm --prefix ui run dev",
     "build": "npm --prefix ui run build",
     "prefetch": "node scripts/prefetch-on-start.js",
-    "dev:with-cache": "npm run dev & sleep 3 && npm run prefetch"
+    "dev:with-cache": "npm run dev & sleep 3 && npm run prefetch",
+    "api": "node api/server.js"
   },
   "devDependencies": {
     "vite": "^7.3.1"
+  },
+  "dependencies": {
+    "@fastify/swagger": "^9.7.0",
+    "axios": "^1.13.5",
+    "cheerio": "^1.2.0",
+    "fastify": "^5.7.4"
   }
 }

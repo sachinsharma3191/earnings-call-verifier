@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Filter, CheckCircle, XCircle, AlertTriangle, User, Building, PlayCircle } from 'lucide-react';
 import { apiClient } from '../utils/apiClient';
+import { getMockClaims, getMockTranscript } from '../data/mockTranscripts';
 
 function ClaimExplorer({ companies }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -103,7 +104,12 @@ function ClaimExplorer({ companies }) {
           setSelectedQuarter((prev) => prev || q?.[0] || '');
         }
       } catch (e) {
-        if (!cancelled) setAvailableQuarters([]);
+        // Fallback to mock data when API fails
+        if (!cancelled) {
+          const mockQuarters = ['Q4 2025', 'Q3 2025', 'Q2 2025', 'Q1 2025'];
+          setAvailableQuarters(mockQuarters);
+          setSelectedQuarter((prev) => prev || mockQuarters[0] || '');
+        }
       }
     }
     loadQuarters();
@@ -234,21 +240,7 @@ function ClaimExplorer({ companies }) {
 
           <div className="flex items-end">
             <button
-              onClick={async () => {
-                setVerifying(true);
-                setVerifyError(null);
-                setVerificationResult(null);
-                try {
-                  const parsed = claimsJson?.trim() ? JSON.parse(claimsJson) : [];
-                  const claims = Array.isArray(parsed) ? parsed : (parsed.claims || []);
-                  const resp = await apiClient.verifyClaims(claims, selectedTicker, selectedQuarter);
-                  setVerificationResult(resp);
-                } catch (e) {
-                  setVerifyError(e?.message || 'Verification failed');
-                } finally {
-                  setVerifying(false);
-                }
-              }}
+              onClick={handleVerify}
               disabled={!selectedTicker || !selectedQuarter || verifying}
               className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-400 rounded-lg font-medium transition-colors flex items-center justify-center"
             >

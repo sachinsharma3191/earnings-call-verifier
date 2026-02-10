@@ -1,4 +1,6 @@
-import { FinnhubTranscriptService } from '../../../_lib/services/FinnhubTranscriptService.js';
+
+import { TranscriptScraper } from '../../../_lib/services/TranscriptScraper.js';
+import { getTranscriptSource, FALLBACK_POLICY } from '../../../_lib/data/transcriptSources.js';
 
 export default async function handler(req, res) {
   const { ticker, year, quarter } = req.query;
@@ -7,50 +9,54 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required parameters' });
   }
 
-  const apiKey = process.env.FINNHUB_API_KEY || '';
-  
-  if (apiKey) {
-    try {
-      const finnhubService = new FinnhubTranscriptService(apiKey);
-      const transcript = await finnhubService.getTranscript(
-        ticker,
-        parseInt(year),
-        parseInt(quarter)
-      );
+  const quarterKey = `Q${quarter}-${year}`;
+  const sourceConfig = getTranscriptSource(ticker, quarterKey);
 
-      if (transcript) {
+  if (!sourceConfig) {
+    return res.status(404).json({ error: 'Transcript source not found in manifest' });
+  }
+
+  // 1. Try to fetch from configured source
+  if (sourceConfig.available && sourceConfig.type === 'transcript') {
+    try {
+      const scraper = new TranscriptScraper();
+      const transcriptText = await scraper.fetchTranscript(sourceConfig.url, sourceConfig.source);
+
+      if (transcriptText) {
         return res.status(200).json({
           ticker,
           year: parseInt(year),
           quarter: parseInt(quarter),
-          transcript,
-          source: 'finnhub'
+          transcript: transcriptText,
+          source: sourceConfig.source,
+          source_url: sourceConfig.url,
+          type: 'transcript'
         });
       }
+
+      console.warn(`Scraping failed for ${ticker} ${quarterKey}, falling back to policy.`);
     } catch (error) {
-      console.warn(`Finnhub API failed for ${ticker}, using mock transcript:`, error);
+      console.error(`Scraper error for ${ticker} ${quarterKey}:`, error);
     }
   }
 
-  const mockTranscript = `
-Earnings Call Transcript - ${ticker} Q${quarter} ${year}
+  // 2. Fallback Policy
+  // If configured as 'proxy' OR if scraping failed, return proxy response
+  if (sourceConfig.type === 'proxy' || FALLBACK_POLICY.MISSING_TRANSCRIPT === 'proxy') {
+    return res.status(200).json({
+      ticker,
+      year: parseInt(year),
+      quarter: parseInt(quarter),
+      transcript: `[PROXY DOCUMENT: SEC ${FALLBACK_POLICY.PROXY_POLICY.type}]\n\nVerification performed against official SEC filings. Full transcript text is not available for this quarter.`,
+      source: 'SEC EDGAR (Proxy)',
+      source_url: sourceConfig.url || 'https://www.sec.gov/edgar/searchedgar/companysearch',
+      type: 'proxy',
+      note: sourceConfig.note || 'Fallback to proxy'
+    });
+  }
 
-CEO: Thank you for joining us today. We're pleased to report strong results for Q${quarter} ${year}.
-
-Our revenue came in at $95.3 billion, representing growth of 6% year over year. Operating income reached $31.5 billion, and our gross margin expanded to 46.2%.
-
-CFO: Adding to that, our net income for the quarter came in at $24.2 billion. We continue to see strong demand across all our product categories.
-
-Our operating margin improved to 33.1%, reflecting our operational efficiency and scale advantages.
-
-Q&A Session will follow...
-  `.trim();
-
-  return res.status(200).json({
-    ticker,
-    year: parseInt(year),
-    quarter: parseInt(quarter),
-    transcript: mockTranscript,
-    source: 'mock_fallback'
+  return res.status(404).json({
+    error: 'Transcript unavailable',
+    message: 'Transcript not available and no proxy fallback enabled.'
   });
 }
