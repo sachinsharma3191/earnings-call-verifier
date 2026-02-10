@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createApiHandler } from '../_lib/middleware/apiHandler';
 
-export default createApiHandler(async (req: VercelRequest, res: VercelResponse) => {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   const companies = [
     { ticker: 'AAPL', name: 'Apple Inc.', cik: '0000320193' },
     { ticker: 'NVDA', name: 'NVIDIA Corporation', cik: '0001045810' },
@@ -15,8 +14,8 @@ export default createApiHandler(async (req: VercelRequest, res: VercelResponse) 
     { ticker: 'WMT', name: 'Walmart Inc.', cik: '0000104169' }
   ];
   
-  return {
+  return res.status(200).json({
     companies,
     total: companies.length
-  };
-}, { allowedMethods: ['GET'] });
+  });
+}
