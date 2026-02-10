@@ -2,9 +2,14 @@
 
 > **Verifies executive claims from earnings calls against official SEC EDGAR filings**
 
-**Live Demo**: [earnings-call-verifier.vercel.app](https://earnings-call-verifier.vercel.app)  
-**Video Walkthrough**: [Loom link]  
-**Claude Skill**: Also deployable as a Claude Artifact for free LLM inference
+### Two UI Versions
+
+| Version | Link | Description |
+|---------|------|-------------|
+| **Claude Artifact** (Lite) | [claude.ai/public/artifacts/90ed4caf-...](https://claude.ai/public/artifacts/90ed4caf-2b34-4ee3-b60f-7e34c4f9caf5) | Self-contained single-file React app built by Claude. Runs entirely in-browser with embedded SEC data — zero backend, zero API keys. Free to use. |
+| **Full App** (Detailed) | [earnings-call-verifier.vercel.app](https://earnings-call-verifier.vercel.app) | Production deployment with live SEC EDGAR XBRL integration, background cache worker, transcript scraping, real-time claim verification API, and full dashboard. |
+
+**Video Walkthrough**: [Loom link]
 
 **Stack**: React + Vite frontend, Fastify API (Node.js), SEC EDGAR XBRL integration, multi-layer caching  
 **Coverage**: 10 companies × 4 quarters = 40 data points
