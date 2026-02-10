@@ -6,7 +6,9 @@
   "scripts": {
     "install": "npm --prefix ui install",
     "dev": "npm --prefix ui run dev",
-    "build": "npm --prefix ui run build"
+    "build": "npm --prefix ui run build",
+    "prefetch": "node scripts/prefetch-on-start.js",
+    "dev:with-cache": "npm run dev & sleep 3 && npm run prefetch"
   },
   "devDependencies": {
     "vite": "^7.3.1"
