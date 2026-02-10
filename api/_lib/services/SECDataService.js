@@ -85,9 +85,8 @@ export class SECDataService {
           return;
         }
 
-        // Filter: include data from last 4 years
-        const currentYear = new Date().getFullYear();
-        if (year < currentYear - 4) {
+        // Filter: include data from fiscal year 2025 only
+        if (year !== 2025) {
           return;
         }
 
