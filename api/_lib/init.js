@@ -1,66 +1,27 @@
-// Auto-prefetch companies data when server starts using DataAggregator
-// Combines all sources: SEC EDGAR, Transcript Sources, Static/Mock fallback
-import { fileCache } from './cache/FileCache.js';
-import { DataAggregator } from './services/DataAggregator.js';
-import { TICKER_TO_CIK } from './constants/index.js';
+// Server startup: initialize caches and start background refresh
+// - Loads aggregated data into both fileCache and aggregateCache
+// - Starts background process that checks every 30 min
+// - Data expires after 15 min, gets recomputed on next check
+import { cacheRefresher } from './cache/CacheRefresher.js';
 
-let prefetchStarted = false;
+let initialized = false;
 
 export async function initializeCache() {
-  // Only run once
-  if (prefetchStarted) return;
-  prefetchStarted = true;
-
-  console.log('🔄 Initializing company cache on server startup...');
+  if (initialized) return;
+  initialized = true;
 
   try {
-    // Check if cache already has data
-    const cached = fileCache.getAll();
-    const cachedCount = Object.keys(cached).length;
+    // 1. Initial load (uses cached data if valid, else computes fresh)
+    await cacheRefresher.initialize();
 
-    if (cachedCount >= 10) {
-      console.log(`✅ Cache already populated with ${cachedCount} companies`);
-      return;
-    }
+    // 2. Start background refresh (checks every 30 min)
+    cacheRefresher.startBackgroundRefresh();
 
-    console.log('📡 Prefetching all companies data (aggregating sources)...');
-    
-    const aggregator = new DataAggregator({ scrapeTranscripts: true });
-    let successCount = 0;
-    let failedCount = 0;
-
-    for (const ticker of Object.keys(TICKER_TO_CIK)) {
-      try {
-        if (fileCache.has(ticker)) {
-          console.log(`  ✓ ${ticker} already cached`);
-          successCount++;
-          continue;
-        }
-
-        const data = await aggregator.getCompanyData(ticker);
-        if (data) {
-          fileCache.set(ticker, data);
-          const secQ = data.coverage.financial.sec;
-          const staticQ = data.coverage.financial.static;
-          const transcripts = data.coverage.transcript.available;
-          console.log(`  ✓ ${ticker} cached (${secQ} SEC + ${staticQ} static, ${transcripts} transcripts)`);
-          successCount++;
-        } else {
-          console.error(`  ✗ ${ticker} - no data returned`);
-          failedCount++;
-        }
-      } catch (error) {
-        console.error(`  ✗ ${ticker} failed:`, error.message);
-        failedCount++;
-      }
-    }
-
-    console.log(`✅ Cache initialization complete: ${successCount} success, ${failedCount} failed`);
-
+    console.log('✅ Cache system ready (TTL: 15min, refresh check: 30min)');
   } catch (error) {
     console.error('❌ Cache initialization error:', error.message);
   }
 }
 
-// Auto-start prefetch on module load
+// Auto-start on module load
 initializeCache();

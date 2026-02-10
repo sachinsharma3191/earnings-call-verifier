@@ -2,8 +2,15 @@ import Fastify from "fastify";
 import swagger from "@fastify/swagger";
 
 import { fileCache } from "./cache/FileCache.js";
+import { aggregateCache } from "./cache/AggregateCache.js";
+import { cacheRefresher } from "./cache/CacheRefresher.js";
 import { TICKER_TO_CIK, COMPANIES_LIST } from "./constants/index.js";
 import { verifySingleClaim, calculateSummary } from "./services/VerificationService.js";
+
+// Helper: get company data from aggregate cache first, then fileCache fallback
+function getCachedCompany(ticker) {
+  return aggregateCache.getCompany(ticker) || fileCache.get(ticker);
+}
 
 let appPromise = null;
 
@@ -53,14 +60,14 @@ async function buildApp() {
       status: "healthy",
       service: "earnings-verifier-api",
       version: "3.0.0",
-      cached: Object.keys(fileCache.getAll()).length
+      cache: cacheRefresher.getStatus()
     };
   });
 
   // ─── GET /api/companies ─── All companies from cache
   app.get("/api/companies", async (req, reply) => {
     const companiesWithData = COMPANIES_LIST.map(company => {
-      const cached = fileCache.get(company.ticker);
+      const cached = getCachedCompany(company.ticker);
       if (cached) {
         return {
           ticker: cached.ticker || company.ticker,
@@ -94,7 +101,7 @@ async function buildApp() {
   // ─── GET /api/companies/:ticker ─── Single company from cache
   app.get("/api/companies/:ticker", async (req, reply) => {
     const ticker = req.params.ticker.toUpperCase();
-    const cached = fileCache.get(ticker);
+    const cached = getCachedCompany(ticker);
 
     if (!cached) {
       reply.code(404);
@@ -107,7 +114,7 @@ async function buildApp() {
   // ─── GET /api/companies/:ticker/quarters ─── Quarters from cache (fast filter)
   app.get("/api/companies/:ticker/quarters", async (req, reply) => {
     const ticker = req.params.ticker.toUpperCase();
-    const cached = fileCache.get(ticker);
+    const cached = getCachedCompany(ticker);
 
     if (!cached) {
       reply.code(404);
@@ -126,7 +133,7 @@ async function buildApp() {
   app.get("/api/companies/:ticker/metrics/:quarter", async (req, reply) => {
     const ticker = req.params.ticker.toUpperCase();
     const quarter = decodeURIComponent(req.params.quarter);
-    const cached = fileCache.get(ticker);
+    const cached = getCachedCompany(ticker);
 
     if (!cached) {
       reply.code(404);
@@ -166,8 +173,8 @@ async function buildApp() {
         return { error: `Company ${ticker} not found` };
       }
 
-      // Fast lookup: filter cached aggregated data
-      const cached = fileCache.get(upperTicker);
+      // Fast lookup: aggregate cache first, fileCache fallback
+      const cached = getCachedCompany(upperTicker);
       if (!cached?.quarters) {
         reply.code(400);
         return { error: `No cached data for ${upperTicker}. Server may still be initializing.` };
