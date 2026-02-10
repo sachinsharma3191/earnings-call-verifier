@@ -119,45 +119,52 @@ async function buildApp() {
   });
 
   app.post("/api/verification/verify", async (req, reply) => {
-    const { ticker, quarter, claims } = req.body;
+    try {
+      const { ticker, quarter, claims } = req.body;
 
-    if (!ticker || !quarter || !claims || !Array.isArray(claims)) {
-      reply.code(400);
-      return { error: "Missing required fields: ticker, quarter, claims[]" };
-    }
-
-    const cik = COMPANY_CIKS[ticker.toUpperCase()];
-    if (!cik) {
-      reply.code(404);
-      return { error: `Company ${ticker} not found` };
-    }
-    const financials = await secService.getCompanyFinancials(cik);
-    if (!financials) {
-      reply.code(404);
-      return { error: `Company ${ticker} not found` };
-    }
-
-    const quarterData = findQuarterData(financials.quarters, quarter);
-    if (!quarterData) {
-      reply.code(404);
-      return { error: `Quarter ${quarter} not found for ${ticker}` };
-    }
-
-    const verifiedClaims = claims.map((claim) => verifySingleClaim(claim, quarterData));
-    const summary = calculateSummary(verifiedClaims);
-
-    return {
-      ticker: ticker.toUpperCase(),
-      quarter,
-      total_claims: verifiedClaims.length,
-      summary,
-      claims: verifiedClaims,
-      sec_data: {
-        end_date: qData.end_date,
-        filed: qData.filed,
-        form: qData.form
+      if (!ticker || !quarter || !claims || !Array.isArray(claims)) {
+        reply.code(400);
+        return { error: "Missing required fields: ticker, quarter, claims[]" };
       }
-    };
+
+      const cik = COMPANY_CIKS[ticker.toUpperCase()];
+      if (!cik) {
+        reply.code(400);
+        return { error: `Company ${ticker} not found` };
+      }
+      
+      const financials = await secService.getCompanyFinancials(cik);
+      if (!financials) {
+        reply.code(400);
+        return { error: `Financial data not available for ${ticker}` };
+      }
+
+      const quarterData = findQuarterData(financials.quarters, quarter);
+      if (!quarterData) {
+        reply.code(400);
+        return { error: `Quarter ${quarter} not found for ${ticker}` };
+      }
+
+      const verifiedClaims = claims.map((claim) => verifySingleClaim(claim, quarterData));
+      const summary = calculateSummary(verifiedClaims);
+
+      return {
+        ticker: ticker.toUpperCase(),
+        quarter,
+        total_claims: verifiedClaims.length,
+        summary,
+        claims: verifiedClaims,
+        sec_data: {
+          end_date: quarterData.end_date,
+          filed: quarterData.filed,
+          form: quarterData.form || '10-Q'
+        }
+      };
+    } catch (error) {
+      req.log.error('Verification error:', error);
+      reply.code(400);
+      return { error: "Verification failed", details: error.message };
+    }
   });
 
   app.post("/api/analyze", async (req, reply) => {
@@ -176,7 +183,7 @@ async function buildApp() {
       return result;
     } catch (error) {
       req.log.error(error);
-      reply.code(500);
+      reply.code(400);
       return { error: "Analysis failed", details: error.message };
     }
   });
