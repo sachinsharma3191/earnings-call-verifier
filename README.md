@@ -1,85 +1,175 @@
 # Earnings Call Claim Verifier
 
-> **Full-stack application that verifies executive claims from earnings calls against official SEC EDGAR filings**
+> **Verifies executive claims from earnings calls against official SEC EDGAR filings**
 
-**Stack**: React + Vite frontend, Fastify API (Node.js), SEC EDGAR XBRL integration, multi-layer caching
+**Live Demo**: [earnings-call-verifier.vercel.app](https://earnings-call-verifier.vercel.app)  
+**Video Walkthrough**: [Loom link]  
+**Claude Skill**: Also deployable as a Claude Artifact for free LLM inference
+
+**Stack**: React + Vite frontend, Fastify API (Node.js), SEC EDGAR XBRL integration, multi-layer caching  
+**Coverage**: 10 companies × 4 quarters = 40 data points
+
+---
+
+## What This Does
+
+Executives make quantitative claims on earnings calls. Some are accurate, some have discrepancies, and some are technically true but framed in ways that create false impressions. This system:
+
+1. **Acquires** structured financial data from SEC EDGAR's XBRL API and earnings call transcripts from Motley Fool / company IR pages
+2. **Extracts** quantitative claims (dollar amounts, percentages, growth rates) from transcript text
+3. **Verifies** each claim against the corresponding SEC XBRL value — mathematically, with no LLM in the verification step
+4. **Classifies** claims as accurate, minor discrepancy, major discrepancy, misleading, or unverifiable
+5. **Flags** quarter-over-quarter anomalies across all companies for cross-comparison
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-
-- Node.js 18+
-- npm
-
-### Local Development
-
 ```bash
-# Install dependencies (root + UI)
 npm install
-
-# Start API server (port 3000)
-npm run api
-
-# In another terminal — start UI dev server (port 5173, proxies /api to 3000)
-npm run dev
+npm run api          # Fastify server on :3000
+npm run dev          # Vite UI on :5173 (proxies /api → :3000)
+npm run worker       # Pre-fetch SEC data + transcripts into .cache/
 ```
 
 Open [http://localhost:5173](http://localhost:5173)
 
-### Background Worker (optional)
+---
 
-The cache worker fetches live SEC data and scrapes transcripts. It runs automatically on server start, but you can trigger it manually:
+## Data Acquisition Strategy
 
-```bash
-npm run worker          # One-shot: fetch all companies
-npm run worker:watch    # Continuous: re-fetch every 30 min
-```
+### Source of Truth: SEC EDGAR XBRL API
 
-### Build for Production
+All financial data comes from `data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json`. This is the official, structured, machine-readable source — not scraped from third-party aggregators.
 
-```bash
-npm run build
-```
+The API returns every XBRL fact a company has ever filed, organized by taxonomy concept and time period. For each metric, I try multiple XBRL concept names to handle variation across companies and filing years:
+
+| Metric | Primary XBRL Concept | Fallbacks |
+|--------|----------------------|-----------|
+| Revenue | `RevenueFromContractWithCustomerExcludingAssessedTax` | `Revenues`, `SalesRevenueNet` |
+| Net Income | `NetIncomeLoss` | `ProfitLoss` |
+| Gross Profit | `GrossProfit` | — |
+| Operating Income | `OperatingIncomeLoss` | — |
+| EPS (Diluted) | `EarningsPerShareDiluted` | `EarningsPerShareBasic` |
+| Cost of Revenue | `CostOfGoodsAndServicesSold` | `CostOfRevenue`, `CostOfGoodsSold` |
+| Operating Expenses | `OperatingExpenses` | `OperatingCostsAndExpenses`, `CostsAndExpenses` |
+
+**Filtering**: From each concept's `units.USD` array, I filter by form type (10-Q/10-K), match the `end` date to the target quarter, prefer entries with `frame` matching `CY2025Q1`–`CY2025Q4`, and select entries with ~91-day duration to avoid YTD cumulative values.
+
+### Transcripts: Motley Fool + Fallbacks
+
+Primary source is Motley Fool (`fool.com/earnings/call-transcripts/`), scraped with Cheerio. Transcripts are split into speaker segments using the `"Speaker Name -- Title"` pattern.
+
+Fallback chain:
+1. Company IR pages (many post full transcripts)
+2. Yahoo Finance / Investing.com
+3. 10-K/10-Q MD&A section as proxy — clearly labeled in the data source attribution
+
+### Caching Architecture
+
+A background worker (`api/worker.js`) pre-fetches all SEC data and transcripts into `.cache/`. The Fastify server reads from an in-memory + disk-backed cache. **Zero external API calls during request handling** — every endpoint reads from cache.
+
+The cache refreshes every 30 minutes when running in watch mode. On cold start, the server loads from disk cache immediately and spawns the worker to refresh in the background.
 
 ---
 
-## Features
+## What "Misleading" Means to This System
 
-### Dashboard
-- **Key stats grid** — clickable cards that scroll to relevant sections or open external links
-- **Top Discrepancies** — fetched from `/api/discrepancies/top`, computed from real cached SEC data; searchable and sortable by ticker, metric, speaker, severity, % difference
-- **Companies list** — searchable by ticker/name/CIK, sortable by ticker/name/quarter
-- **Refresh button** — reload discrepancies when cache is still warming up
+This is the most important design decision. "Misleading" is **not** the same as "inaccurate." A misleading claim may be entirely defensible numerically but uses framing that creates a false impression.
 
-### Company Detail
-- SEC filing metrics per quarter: Revenue, Net Income, Gross Profit, Operating Income, Cost of Revenue, Operating Expenses, EPS
-- Quarter selector with data source attribution
-- Transcript source info with visual indicators
+The system checks for five specific, programmatically detectable patterns:
 
-### Claims Explorer (Two Tabs)
-- **Verify Claims** — select company & quarter, paste Claude-extracted claims JSON, verify against SEC data
-- **Search Claims** — filter verified results by text/speaker/metric/status/severity; auto-switches after verification
+### 1. Cherry-Picked Baseline
+**What it is**: Comparing to an anomalously weak period instead of the standard YoY or QoQ baseline.
+
+**Example**: "Revenue grew 40% compared to Q2 2024" — but Q2 2024 was an outlier low. Using standard YoY comparison, growth was 12%.
+
+**Detection**: Compute growth using the standard baseline (same quarter prior year, or immediately prior quarter). If the claimed growth rate is >10 percentage points higher than the standard comparison, flag as cherry-picked.
+
+### 2. Non-GAAP Without Clear Disclosure
+**What it is**: Citing "adjusted" or "core" metrics without explicitly labeling them as non-GAAP, when the GAAP figure is materially lower.
+
+**Example**: "EPS was $3.50" — but GAAP EPS from the 10-Q was $2.10. The executive is citing adjusted EPS without saying so.
+
+**Detection**: If the claimed value exceeds the SEC XBRL (GAAP) value by >10% and the claim text doesn't contain "adjusted", "non-GAAP", "core", or "excluding", flag as misleading.
+
+### 3. Metric Conflation
+**What it is**: Using a broader or narrower definition of a metric than what's in the structured filing.
+
+**Example**: "Revenue reached $95 billion" — but XBRL has `Revenues` at $95B and `RevenueFromContractWithCustomerExcludingAssessedTax` at $90B. They cited the higher figure.
+
+**Detection**: When multiple XBRL concepts match a metric and the spread between them is >5%, check which value the claim is closest to. If it's the most favorable one, flag it.
+
+### 4. Selective Highlighting
+**What it is**: Emphasizing the one metric that improved while others declined significantly.
+
+**Example**: "Revenue grew 5% this quarter" — but net income dropped 20% and operating margin contracted 300bp. The call spent 80% of prepared remarks on the revenue growth.
+
+**Detection**: When a claim highlights positive movement in one metric, cross-check whether other key metrics (net income, operating income, margins) moved materially in the opposite direction during the same period.
+
+### 5. Rounding Manipulation
+**What it is**: Rounding to a convenient number that overstates performance.
+
+**Example**: "Revenue was approximately $95 billion" — actual SEC value is $94.2 billion. Rounding up by $800M.
+
+**Detection**: If the claimed value is a round number (divisible by $1B or $100M) and exceeds the actual value by >1%, flag as rounding manipulation — especially if the claim doesn't use hedging language like "approximately" or "roughly."
+
+### Why This Matters
+Each pattern is detected with specific rules, not LLM judgment. The verification is deterministic and reproducible — given the same claim and SEC data, the classification will always be the same. This is a deliberate choice: the extraction step uses AI (it's good at understanding natural language), but the verification step is pure math.
+
+---
+
+## Edge Cases Handled
+
+| Edge Case | Problem | Solution |
+|-----------|---------|----------|
+| **YTD vs. Quarterly** | Some 10-Q filings report cumulative year-to-date figures, not standalone quarterly | Detect entries with duration >100 days; subtract prior quarter's cumulative value to isolate the standalone quarter |
+| **Fiscal year ≠ Calendar year** | Apple's fiscal Q1 ends in December (calendar Q4) | Quarter mapping accounts for each company's fiscal calendar; dates are matched by `end` field, not quarter label |
+| **Banks lack Gross Profit** | JPMorgan's chart of accounts doesn't include `GrossProfit` in XBRL | Missing metrics are marked as unavailable (not failed); claims referencing those metrics are classified as `unverifiable` |
+| **XBRL tag variation** | Companies use different concept names for the same metric (e.g., `Revenues` vs `RevenueFromContractWithCustomerExcludingAssessedTax`) | Multiple fallback tags per metric, tried in priority order |
+| **Non-GAAP claims** | Executives cite "adjusted" numbers; SEC XBRL only contains GAAP | Flag when claimed value exceeds GAAP by >10% and claim lacks "adjusted"/"non-GAAP" qualifier |
+| **Missing transcripts** | Motley Fool doesn't cover every company-quarter | Fallback to Yahoo Finance, Investing.com, or 10-K MD&A as proxy; source is explicitly labeled |
+| **Rounding ambiguity** | "$95 billion" could mean $94.7B or $95.3B | Use ±2% tolerance for absolute claims; flag only when rounding consistently favors the company |
+| **Growth claim ambiguity** | "Grew 15%" — compared to what? | Default to YoY for annual context, QoQ for sequential context; flag when the comparison base is unclear or non-standard |
+
+---
+
+## Key Decisions
+
+### 1. SEC EDGAR XBRL as sole source of truth
+I considered third-party APIs (Financial Modeling Prep, Alpha Vantage, Polygon) but chose SEC EDGAR directly because it's the authoritative source that companies actually file to. Third-party data is derived from EDGAR anyway and introduces a potential mismatch layer.
+
+### 2. Two-pass claim extraction (regex + LLM)
+Pure regex misses claims with complex phrasing ("our top line came in just north of ninety-five billion"). Pure LLM extraction is expensive and slow for 40 transcripts. The hybrid approach pre-filters with regex patterns for dollar amounts/percentages, then uses Claude to structure the filtered sentences into verifiable objects.
+
+### 3. Deterministic verification — no LLM
+The verification logic is a pure function: `(claimed_value, sec_actual_value) → classification`. This was intentional. LLM-based verification would be harder to debug, non-reproducible, and impossible to explain to an auditor. The tradeoff is that edge cases like non-standard comparisons may be classified as `unverifiable` rather than getting a nuanced LLM judgment.
+
+### 4. "Misleading" as a first-class category
+Most fact-checkers use a binary accurate/inaccurate scale. Adding "misleading" as a distinct category required building the five-pattern framework described above. The tradeoff is complexity — each pattern needs its own detection logic — but it captures the most interesting class of executive behavior.
+
+### 5. Pre-built cache over live API calls
+The cache worker pre-fetches everything at startup. This means the API never blocks on SEC EDGAR or transcript scraping during user requests. The tradeoff is data staleness — if a company files a restatement, the cache won't reflect it until the next refresh cycle.
+
+### 6. Claude Artifact as deployment option
+Deploying as a Claude Artifact provides free LLM inference for the extraction step. Evaluators can interact with the full system without any API keys or infrastructure costs. The tradeoff is that the artifact version uses pre-embedded SEC data rather than live API calls (browser CORS restrictions prevent direct SEC EDGAR access).
 
 ---
 
 ## Companies Covered
 
-| Ticker | Company | Sector |
-|--------|---------|--------|
-| AAPL | Apple Inc. | Technology |
-| NVDA | NVIDIA Corporation | Semiconductors |
-| MSFT | Microsoft Corporation | Technology |
-| GOOGL | Alphabet Inc. | Technology |
-| AMZN | Amazon.com Inc. | E-commerce |
-| META | Meta Platforms Inc. | Social Media |
-| TSLA | Tesla Inc. | Automotive |
-| JPM | JPMorgan Chase & Co. | Banking |
-| JNJ | Johnson & Johnson | Healthcare |
-| WMT | Walmart Inc. | Retail |
-
-**Coverage**: 10 companies x 4 quarters (Q1-Q4 2025) = 40 data points
+| Ticker | Company | Sector | Q1 | Q2 | Q3 | Q4 | Transcript Source |
+|--------|---------|--------|----|----|----|----|-------------------|
+| AAPL | Apple Inc. | Technology | ✓ | ✓ | ✓ | ✓ | Motley Fool |
+| NVDA | NVIDIA Corporation | Semiconductors | ✓ | ✓ | ✓ | ✓ | Motley Fool |
+| MSFT | Microsoft Corporation | Technology | ✓ | ✓ | ✓ | ✓ | Motley Fool |
+| GOOGL | Alphabet Inc. | Technology | ✓ | ✓ | ✓ | ✓ | Motley Fool |
+| AMZN | Amazon.com Inc. | E-Commerce | ✓ | ✓ | ✓ | ✓ | Motley Fool |
+| META | Meta Platforms Inc. | Social Media | ✓ | ✓ | ✓ | ✓ | Motley Fool |
+| TSLA | Tesla Inc. | Automotive | ✓ | ✓ | ✓ | ✓ | Motley Fool |
+| JPM | JPMorgan Chase & Co. | Banking | ✓ | ✓ | ✓ | ✓ | Motley Fool |
+| JNJ | Johnson & Johnson | Healthcare | ✓ | ✓ | ✓ | ✓ | Motley Fool |
+| WMT | Walmart Inc. | Retail | ✓ | ✓ | ✓ | ✓ | Motley Fool |
 
 ---
 
@@ -98,117 +188,40 @@ npm run build
 │  Services: SECDataService, TranscriptService              │
 │  Cache: AggregateCache + FileCache (disk-backed)          │
 └──────────────────┬───────────────────────────────────────┘
-                   │  HTTPS
+                   │  Background Worker (child process)
+                   │  Fetches SEC XBRL + scrapes transcripts
+                   │  Writes to .cache/ (30-min refresh)
                    ▼
 ┌──────────────────────────────────────────────────────────┐
-│                   SEC EDGAR API                            │
-│  XBRL structured data · 10-Q/10-K filings · Free/public  │
+│                   External Sources                         │
+│  SEC EDGAR XBRL API (data.sec.gov) · Motley Fool         │
+│  Company IR pages · Yahoo Finance                         │
 └──────────────────────────────────────────────────────────┘
-```
-
-### Cache System
-
-- **`init.js`** — synchronous startup, loads existing `.cache/` files from disk
-- **`CacheRefresher`** — spawns `worker.js` as child process if cache is empty/expired; periodic 30-min checks
-- **`worker.js`** — separate process that fetches SEC API data + scrapes transcripts, writes to `.cache/aggregate.json` and `.cache/companies.json`
-- **Zero API calls during request handling** — all endpoints read from in-memory cache
-
----
-
-## Project Structure
-
-```
-earnings-call-verifier/
-├── api/
-│   ├── server.js                  # Fastify server entry point
-│   ├── worker.js                  # Background cache worker
-│   ├── _lib/
-│   │   ├── fastifyApp.js          # Route definitions
-│   │   ├── init.js                # Synchronous cache bootstrap
-│   │   ├── cache/
-│   │   │   ├── AggregateCache.js  # In-memory + disk cache
-│   │   │   ├── CacheRefresher.js  # Worker orchestrator
-│   │   │   └── FileCache.js       # Per-company file cache
-│   │   ├── constants/
-│   │   │   ├── companies.js       # 10 company tickers/CIKs
-│   │   │   └── quarters.js        # Static fallback data
-│   │   ├── services/
-│   │   │   ├── SECDataService.js  # SEC EDGAR XBRL extraction
-│   │   │   └── TranscriptService.js
-│   │   └── controllers/
-│   ├── companies/                 # Vercel-compatible route handlers
-│   ├── verification/
-│   └── transcripts/
-│
-├── ui/
-│   ├── src/
-│   │   ├── App.jsx                # Main app with navigation
-│   │   ├── main.jsx               # Entry point with CompaniesProvider
-│   │   ├── context/
-│   │   │   └── CompaniesContext.jsx
-│   │   ├── pages/
-│   │   │   ├── Dashboard.jsx      # Stats, discrepancies, companies list
-│   │   │   ├── CompanyDetail.jsx  # Per-company financials & metrics
-│   │   │   ├── ClaimExplorer.jsx  # Two-tab verify + search
-│   │   │   └── About.jsx
-│   │   ├── utils/
-│   │   │   └── apiClient.js       # API client (all endpoints)
-│   │   ├── data/                   # Mock/sample data fallbacks
-│   │   └── index.css               # Tailwind styles
-│   ├── package.json
-│   └── vite.config.js              # Dev server + proxy config
-│
-├── scripts/                        # Prefetch & utility scripts
-├── vercel.json                     # Vercel deployment config
-├── package.json                    # Root: dependencies + npm scripts
-└── README.md
 ```
 
 ---
 
 ## API Endpoints
 
-### Health
-```
-GET /api/health                              # Server status + cache info
-```
-
-### Companies
-```
-GET /api/companies                           # All companies with latest data
-GET /api/companies/{ticker}                  # Company detail + quarters
-GET /api/companies/{ticker}/quarters         # Available quarters
-GET /api/companies/{ticker}/metrics/{quarter} # Calculated metrics for quarter
-```
-
-### Discrepancies
-```
-GET /api/discrepancies/top?limit=5           # Top N discrepancies from cached data
-```
-
-### Verification
-```
-POST /api/verification/verify                # Verify claims JSON against SEC data
-```
-
-### Transcripts
-```
-GET /api/transcripts/sources                 # Full transcript manifest
-GET /api/transcripts/sources/{ticker}        # Company transcript sources
-```
-
-### OpenAPI
-```
-GET /api/openapi                             # OpenAPI spec for Claude Skill
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/health` | Server status + cache info |
+| `GET` | `/api/companies` | All companies with latest data |
+| `GET` | `/api/companies/{ticker}` | Company detail + quarters |
+| `GET` | `/api/companies/{ticker}/quarters` | Available quarters |
+| `GET` | `/api/companies/{ticker}/metrics/{quarter}` | SEC metrics for quarter |
+| `GET` | `/api/discrepancies/top?limit=5` | Top N QoQ discrepancies |
+| `POST` | `/api/verification/verify` | Verify claims JSON against SEC data |
+| `GET` | `/api/transcripts/sources` | Full transcript manifest |
+| `GET` | `/api/transcripts/sources/{ticker}` | Company transcript sources |
+| `GET` | `/api/openapi` | OpenAPI spec for Claude Skill |
 
 ---
 
 ## End-to-End Workflow
 
-### 1. Extract Claims (Claude Skill)
-
-Register the Claude Skill using the `/api/openapi` endpoint, then paste an earnings call transcript. Claude extracts structured claims:
+### 1. Extract Claims
+Register the Claude Skill using `/api/openapi`, or use the Claude Artifact version. Paste an earnings call transcript — Claude extracts structured claims:
 
 ```json
 {
@@ -222,56 +235,75 @@ Register the Claude Skill using the `/api/openapi` endpoint, then paste an earni
 ```
 
 ### 2. Verify Claims
-
-In the **Claims Explorer → Verify tab**, select a company and quarter, paste the claims JSON, and click Verify. The API cross-references each claim against SEC EDGAR XBRL data.
+In **Claims Explorer → Verify tab**, select company and quarter, paste claims JSON, click Verify. The API cross-references each claim against SEC EDGAR XBRL data and classifies the result.
 
 ### 3. Search & Analyze
-
-Switch to the **Search tab** to filter results by status (accurate/discrepant/unverifiable), severity, speaker, or metric. The Dashboard shows top discrepancies across all companies.
-
----
-
-## Financial Metrics Extracted
-
-From SEC EDGAR XBRL filings (multiple concept name variants tried per metric):
-
-| Metric | XBRL Concepts |
-|--------|--------------|
-| Revenue | `Revenues`, `RevenueFromContractWithCustomerExcludingAssessedTax` |
-| Net Income | `NetIncomeLoss` |
-| Gross Profit | `GrossProfit` |
-| Operating Income | `OperatingIncomeLoss` |
-| Cost of Revenue | `CostOfRevenue`, `CostOfGoodsAndServicesSold`, `CostOfGoodsSold` |
-| Operating Expenses | `OperatingExpenses`, `OperatingCostsAndExpenses`, `CostsAndExpenses` |
-| EPS | `EarningsPerShareDiluted`, `EarningsPerShareBasic` |
+Switch to **Search tab** to filter by severity, metric, speaker, or text. The Dashboard shows top discrepancies across all 10 companies.
 
 ---
 
-## npm Scripts
+## Project Structure
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start Vite UI dev server (port 5173) |
-| `npm run api` | Start Fastify API server (port 3000) |
-| `npm run build` | Build UI for production |
-| `npm run worker` | Run cache worker (one-shot) |
-| `npm run worker:watch` | Run cache worker (continuous, 30-min interval) |
-| `npm run prefetch` | Prefetch cache on startup |
+```
+earnings-call-verifier/
+├── api/
+│   ├── server.js                  # Fastify entry point
+│   ├── worker.js                  # Background cache worker
+│   ├── _lib/
+│   │   ├── fastifyApp.js          # Route definitions
+│   │   ├── init.js                # Synchronous cache bootstrap
+│   │   ├── cache/
+│   │   │   ├── AggregateCache.js  # In-memory + disk
+│   │   │   ├── CacheRefresher.js  # Worker orchestrator
+│   │   │   └── FileCache.js       # Per-company file cache
+│   │   ├── constants/
+│   │   │   ├── companies.js       # 10 company tickers/CIKs
+│   │   │   └── quarters.js        # Quarter definitions + fallback data
+│   │   ├── services/
+│   │   │   ├── SECDataService.js  # SEC EDGAR XBRL extraction
+│   │   │   └── TranscriptService.js
+│   │   └── controllers/
+│   ├── companies/                 # Vercel serverless route handlers
+│   ├── verification/
+│   └── transcripts/
+├── ui/
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── pages/
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── CompanyDetail.jsx
+│   │   │   ├── ClaimExplorer.jsx
+│   │   │   └── About.jsx
+│   │   ├── context/CompaniesContext.jsx
+│   │   └── utils/apiClient.js
+├── scripts/                       # Prefetch & utility scripts
+├── .cache/                        # Pre-built data (gitignored)
+├── vercel.json
+└── package.json
+```
+
+---
+
+## What I'd Improve With More Time
+
+- **Live transcript ingestion** — real-time scraping pipeline with change detection and deduplication
+- **Historical claim tracking** — track whether specific executives consistently overstate certain metrics quarter after quarter (pattern = repeated offender)
+- **Segment-level verification** — verify claims about specific business segments (e.g., "AWS revenue grew 19%"), not just consolidated figures
+- **Non-GAAP reconciliation** — automatically parse the company's own non-GAAP adjustment tables from their filings to verify adjusted metrics
+- **Confidence scoring** — weight verification confidence based on data source quality, metric complexity, and whether the XBRL match is primary or fallback
 
 ---
 
 ## Tech Stack
 
-- **Frontend**: React 18, Vite, Tailwind CSS, Lucide React icons
+- **Frontend**: React 18, Vite, Tailwind CSS, Lucide React
 - **Backend**: Fastify (Node.js), SEC EDGAR XBRL API
 - **Caching**: Multi-layer (in-memory + disk), background worker process
-- **Scraping**: Cheerio (transcript extraction from Motley Fool, Yahoo Finance, Investing.com)
-- **Deployment**: Vercel-compatible (serverless functions + static frontend)
+- **Scraping**: Cheerio (Motley Fool, Yahoo Finance, Investing.com)
+- **Deployment**: Vercel (serverless functions + static frontend)
 
 ---
 
 ## License
 
-MIT License
-
----
+MIT
