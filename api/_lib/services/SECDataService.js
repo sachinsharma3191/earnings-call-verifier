@@ -44,6 +44,8 @@ export class SECDataService {
   extractQuarterlyData(data) {
     const facts = data.facts?.['us-gaap'] || {};
     const quartersMap = new Map();
+    const currentYear = new Date().getFullYear();
+    const minYear = currentYear - 1; // Only last 1 year (2025-2026 if current is 2026)
 
     const revenueData = facts.Revenues?.units?.USD || facts.RevenueFromContractWithCustomerExcludingAssessedTax?.units?.USD || [];
     
@@ -53,6 +55,12 @@ export class SECDataService {
       if (frameMatch && item.end) {
         const quarter = `Q${frameMatch[1]}`;
         const year = new Date(item.end).getFullYear();
+        
+        // Filter: only include data from last 1 year (2025-2026)
+        if (year < minYear) {
+          return; // Skip old data
+        }
+        
         const key = `${year}-${quarter}`;
         
         // Only keep the most recent filing for each quarter
@@ -83,7 +91,7 @@ export class SECDataService {
       }
       const qOrder = { 'Q4': 4, 'Q3': 3, 'Q2': 2, 'Q1': 1 };
       return (qOrder[b.fiscal_period] || 0) - (qOrder[a.fiscal_period] || 0);
-    }).slice(0, 8);
+    }).slice(0, 4); // Limit to 4 most recent quarters
   }
 
   extractMetric(facts, metricName, endDate) {

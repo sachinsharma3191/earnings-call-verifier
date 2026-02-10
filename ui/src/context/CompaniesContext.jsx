@@ -21,7 +21,7 @@ export function CompaniesProvider({ children }) {
           name: c.name,
           cik: c.cik,
           quarters: [],
-          latestQuarter: 'Q3 2024',
+          latestQuarter: 'Q4 2025',
           financials: null
         }));
 
