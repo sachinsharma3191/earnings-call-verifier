@@ -66,7 +66,9 @@ function CompanyDetail({ company, onBack }) {
             <span className="text-sm font-medium">Select Quarter:</span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {company.quarters.map((quarter) => (
+            {(company.quarters || []).map((q) => {
+              const quarter = typeof q === 'string' ? q : q.quarter;
+              return (
               <button
                 key={quarter}
                 onClick={() => setSelectedQuarter(quarter)}
@@ -78,7 +80,8 @@ function CompanyDetail({ company, onBack }) {
               >
                 {quarter}
               </button>
-            ))}
+            );
+            })}
           </div>
         </div>
       </div>

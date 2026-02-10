@@ -4,8 +4,18 @@ import { apiClient } from '../utils/apiClient';
 
 function CompanyDetail({ company, onBack }) {
   const ticker = company?.ticker;
-  const [quarters, setQuarters] = useState(company?.quarters || []);
-  const [selectedQuarter, setSelectedQuarter] = useState(company?.latestQuarter || company?.quarters?.[0] || '');
+  const [quarters, setQuarters] = useState(() => {
+    const raw = company?.quarters || [];
+    return raw.map(q => typeof q === 'string' ? q : q.quarter).filter(Boolean);
+  });
+  const [selectedQuarter, setSelectedQuarter] = useState(() => {
+    const lq = company?.latestQuarter;
+    if (typeof lq === 'string') return lq;
+    if (lq?.quarter) return lq.quarter;
+    const first = company?.quarters?.[0];
+    if (typeof first === 'string') return first;
+    return first?.quarter || '';
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [metrics, setMetrics] = useState(null);
