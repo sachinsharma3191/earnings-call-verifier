@@ -95,6 +95,11 @@ class APIClient {
     return this.request('/verification/statistics');
   }
 
+  // Discrepancies
+  async getTopDiscrepancies(limit = 5) {
+    return this.request(`/discrepancies/top?limit=${limit}`);
+  }
+
   // ML Endpoints
   async analyzeSentiment(text, context = '') {
     return this.request('/ml/analyze-sentiment', {

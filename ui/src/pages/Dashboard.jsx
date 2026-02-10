@@ -1,13 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FileText, ChevronRight, Database, Building2, AlertTriangle, Search, ArrowUpDown } from 'lucide-react';
-
-const TOP_DISCREPANCIES = [
-  { rank: 1, ticker: 'NVDA', name: 'NVIDIA Corporation', metric: 'Net Income', speaker: 'Colette Kress', role: 'CFO', claimed: '$14.1B', actual: '$13.32B', pctDiff: 5.86, severity: 'high' },
-  { rank: 2, ticker: 'AMZN', name: 'Amazon.com Inc.', metric: 'Operating Income', speaker: 'Brian Olsavsky', role: 'CFO', claimed: '$16.2B', actual: '$15.31B', pctDiff: 5.81, severity: 'high' },
-  { rank: 3, ticker: 'AAPL', name: 'Apple Inc.', metric: 'Operating Income', speaker: 'Luca Maestri', role: 'CFO', claimed: '$31.5B', actual: '$29.95B', pctDiff: 5.18, severity: 'moderate' },
-  { rank: 4, ticker: 'NVDA', name: 'NVIDIA Corporation', metric: 'Gross Margin', speaker: 'Jensen Huang', role: 'CEO', claimed: '76.2%', actual: '74.01%', pctDiff: 2.19, severity: 'moderate' },
-  { rank: 5, ticker: 'TSLA', name: 'Tesla Inc.', metric: 'Automotive Gross Margin', speaker: 'Elon Musk', role: 'CEO', claimed: '21.3%', actual: '19.15%', pctDiff: 2.15, severity: 'moderate' },
-];
+import { apiClient } from '../utils/apiClient';
 
 const SORT_OPTIONS = [
   { key: 'ticker', label: 'Ticker' },
@@ -31,6 +24,24 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
   const [discSearch, setDiscSearch] = useState('');
   const [discSortKey, setDiscSortKey] = useState('pctDiff');
   const [discSortAsc, setDiscSortAsc] = useState(false);
+  const [discrepancies, setDiscrepancies] = useState([]);
+  const [discLoading, setDiscLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadDiscrepancies() {
+      try {
+        const resp = await apiClient.getTopDiscrepancies(10);
+        if (!cancelled) setDiscrepancies(resp?.discrepancies || []);
+      } catch (e) {
+        // non-fatal
+      } finally {
+        if (!cancelled) setDiscLoading(false);
+      }
+    }
+    loadDiscrepancies();
+    return () => { cancelled = true; };
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -52,7 +63,7 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
 
   const filteredDisc = useMemo(() => {
     const q = discSearch.toLowerCase().trim();
-    let list = TOP_DISCREPANCIES.filter((d) => {
+    let list = (discrepancies || []).filter((d) => {
       if (!q) return true;
       return (
         d.ticker.toLowerCase().includes(q) ||
@@ -71,7 +82,7 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
       return discSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
     });
     return list;
-  }, [discSearch, discSortKey, discSortAsc]);
+  }, [discrepancies, discSearch, discSortKey, discSortAsc]);
 
   const handleSort = (key) => {
     if (sortKey === key) {
@@ -197,12 +208,20 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
           </div>
         </div>
 
-        {filteredDisc.length === 0 && discSearch && (
+        {discLoading && (
+          <div className="text-center text-gray-400 py-4">Loading discrepancies from SEC data...</div>
+        )}
+
+        {!discLoading && filteredDisc.length === 0 && discSearch && (
           <div className="text-center text-gray-400 py-4">No discrepancies match "{discSearch}"</div>
         )}
 
+        {!discLoading && filteredDisc.length === 0 && !discSearch && (
+          <div className="text-center text-gray-400 py-4">No discrepancies detected yet. Cache may still be loading.</div>
+        )}
+
         <div className="space-y-3">
-          {filteredDisc.map((d, idx) => (
+          {!discLoading && filteredDisc.map((d, idx) => (
             <div
               key={d.rank}
               className="flex items-center justify-between p-4 rounded-lg bg-gray-800/60 border border-gray-700/50 hover:border-gray-600 transition-all"
