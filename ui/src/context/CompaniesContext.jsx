@@ -15,17 +15,14 @@ export function CompaniesProvider({ children }) {
       setLoading(true);
       setError(null);
       try {
-        const list = await apiClient.getCompanies();
-        const basicCompanies = (list?.companies || []).map((c) => ({
-          ticker: c.ticker,
-          name: c.name,
-          cik: c.cik,
-          quarters: [],
-          latestQuarter: 'Q4 2025',
-          financials: null
-        }));
-
-        if (!cancelled) setCompanies(basicCompanies);
+        // Single API call to get all companies with cached data
+        const response = await apiClient.getCompanies();
+        
+        if (!cancelled) {
+          // Companies already include quarters from cache
+          setCompanies(response?.companies || []);
+          console.log(`Loaded ${response?.companies?.length} companies (${response?.cached} from cache)`);
+        }
       } catch (e) {
         if (!cancelled) setError(e?.message || 'Failed to load companies');
       } finally {
