@@ -179,184 +179,103 @@ function ClaimExplorer({ companies }) {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold mb-2">Claims Explorer</h2>
-        <p className="text-gray-400">Verify earnings call claims against SEC filings and search results</p>
+        <h2 className="text-xl font-extrabold mb-1">Claims Explorer</h2>
+        <p className="text-sm text-gray-500">Extract quantitative claims from earnings calls and verify against SEC EDGAR filings</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-700">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-6 py-3 text-sm font-medium transition-all border-b-2 -mb-px ${
-              activeTab === tab.id
-                ? 'border-blue-500 text-blue-400'
-                : 'border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500'
-            }`}
-          >
-            {tab.label}
-            {tab.id === 'search' && verifiedClaims.length > 0 && (
-              <span className="ml-2 px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full">{verifiedClaims.length}</span>
-            )}
-          </button>
-        ))}
+      <div className="flex gap-1">
+        {[{ id: 'verify', label: 'Verify Claims', Icon: Zap }, { id: 'search', label: 'Search Results', Icon: Search }].map((tab) => {
+          const Icon = tab.Icon;
+          return (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${
+                activeTab === tab.id
+                  ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
+                  : 'border-gray-600 bg-gray-800 text-gray-400 hover:border-gray-500'
+              }`}>
+              <Icon className="h-3.5 w-3.5" />
+              {tab.label}
+              {tab.id === 'search' && verifiedClaims.length > 0 && (
+                <span className="bg-cyan-400 text-black rounded-full px-2 py-0 text-[10px] font-extrabold ml-1">{verifiedClaims.length}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* ═══ VERIFY TAB ═══ */}
       {activeTab === 'verify' && (
-        <div className="space-y-6">
-          {/* Quick Start Guide */}
-          {!verificationResult && (
-            <div className="card p-6 bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-500/30">
-              <h3 className="text-lg font-semibold mb-3 flex items-center">
-                <PlayCircle className="h-5 w-5 mr-2 text-blue-400" />
-                Quick Start Guide
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center font-bold">1</div>
-                  <div>
-                    <div className="font-semibold text-white mb-1">Select Company & Quarter</div>
-                    <div className="text-gray-400">Choose a company and reporting period to verify</div>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center font-bold">2</div>
-                  <div>
-                    <div className="font-semibold text-white mb-1">Add Claims JSON</div>
-                    <div className="text-gray-400">Paste claims or use sample data to get started</div>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center font-bold">3</div>
-                  <div>
-                    <div className="font-semibold text-white mb-1">Verify Claims</div>
-                    <div className="text-gray-400">Click verify to cross-check against SEC data</div>
-                  </div>
-                </div>
-              </div>
+        <div className="card p-5 space-y-4">
+          {/* Company / Quarter / Run Verification — single row */}
+          <div className="flex flex-col md:flex-row gap-3 items-end">
+            <div className="flex-1 min-w-0">
+              <label className="block text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-1.5">Company</label>
+              <select
+                value={selectedTicker}
+                onChange={(e) => { setSelectedTicker(e.target.value); setVerificationResult(null); setVerifyError(null); }}
+                className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+              >
+                {companies?.length > 0 ? (
+                  companies.map((company) => (
+                    <option key={company.ticker} value={company.ticker}>{company.ticker} — {company.name}</option>
+                  ))
+                ) : (
+                  <option value="">Loading companies...</option>
+                )}
+              </select>
+            </div>
+            <div className="min-w-[140px]">
+              <label className="block text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-1.5">Quarter</label>
+              <select
+                value={selectedQuarter}
+                onChange={(e) => { setSelectedQuarter(e.target.value); setVerificationResult(null); setVerifyError(null); }}
+                className="w-full px-3 py-2.5 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+              >
+                {availableQuarters.map((q) => (<option key={q} value={q}>{q}</option>))}
+              </select>
+            </div>
+            <button
+              onClick={() => { if (!claimsJson) loadSampleClaims(); handleVerify(); }}
+              disabled={!selectedTicker || !selectedQuarter || verifying}
+              className="px-6 py-2.5 rounded-lg font-bold text-sm text-black whitespace-nowrap flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: verifying ? '#475569' : 'linear-gradient(135deg, #22d3ee, #6366f1)' }}
+            >
+              <Zap className="h-4 w-4" />
+              {verifying ? 'Analyzing...' : 'Run Verification'}
+            </button>
+          </div>
+
+          {/* Loading indicator */}
+          {verifying && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-sm text-cyan-400">
+              <Zap className="h-4 w-4 animate-pulse" /> Verifying claims against SEC EDGAR data...
             </div>
           )}
 
-          {/* Company / Quarter / Verify */}
-          <div className="card p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-2 font-medium">Company</label>
-                <select
-                  value={selectedTicker}
-                  onChange={(e) => { setSelectedTicker(e.target.value); setVerificationResult(null); setVerifyError(null); }}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {companies?.length > 0 ? (
-                    companies.map((company) => (
-                      <option key={company.ticker} value={company.ticker}>{company.ticker}{company.name ? ` - ${company.name}` : ''}</option>
-                    ))
-                  ) : (
-                    <option value="">Loading companies...</option>
-                  )}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-2 font-medium">Quarter</label>
-                <select
-                  value={selectedQuarter}
-                  onChange={(e) => { setSelectedQuarter(e.target.value); setVerificationResult(null); setVerifyError(null); }}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {availableQuarters.map((q) => (<option key={q} value={q}>{q}</option>))}
-                </select>
-              </div>
-              <div className="flex items-end">
-                <button
-                  onClick={handleVerify}
-                  disabled={!selectedTicker || !selectedQuarter || verifying}
-                  className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-400 rounded-lg font-medium transition-colors flex items-center justify-center"
-                >
-                  <PlayCircle className="h-5 w-5 mr-2" />
-                  {verifying ? 'Verifying...' : 'Verify Claims'}
-                </button>
-              </div>
-            </div>
+          {/* Error */}
+          {verifyError && (
+            <div className="px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-sm text-red-400">{verifyError}</div>
+          )}
 
-            {/* Transcript Source */}
-            {transcriptSource && (
-              <div className={`mt-4 p-3 border rounded-lg ${
-                transcriptSource.scraped ? 'bg-green-900/20 border-green-700/50' :
-                transcriptSource.type === 'proxy' ? 'bg-yellow-900/20 border-yellow-700/50' :
-                transcriptSource.type === 'system_default' ? 'bg-red-900/20 border-red-700/50' :
-                'bg-gray-800/50 border-gray-700'
-              }`}>
-                <div className="flex items-start space-x-2">
-                  <FileText className={`h-4 w-4 mt-0.5 ${
-                    transcriptSource.scraped ? 'text-green-400' :
-                    transcriptSource.type === 'proxy' ? 'text-yellow-400' :
-                    transcriptSource.type === 'system_default' ? 'text-red-400' : 'text-blue-400'
-                  }`} />
-                  <div className="flex-1">
-                    <div className="text-xs text-gray-400 mb-1">Transcript Source</div>
-                    <div className="text-sm text-white font-medium">{transcriptSource.source || 'Unknown'}</div>
-                    {transcriptSource.scraped && (
-                      <div className="mt-1 text-xs text-green-400 flex items-center space-x-1">
-                        <CheckCircle className="h-3 w-3" />
-                        <span>Full earnings call transcript ({transcriptSource.charCount?.toLocaleString() || 0} chars)</span>
-                      </div>
-                    )}
-                    {transcriptSource.type === 'proxy' && (
-                      <div className="mt-1 text-xs text-yellow-400 flex items-center space-x-1">
-                        <AlertTriangle className="h-3 w-3" />
-                        <span>Proxy Document (SEC 10-Q/10-K MD&A) - Full transcript unavailable</span>
-                      </div>
-                    )}
-                    {transcriptSource.type === 'system_default' && (
-                      <div className="mt-1 text-xs text-red-400 flex items-center space-x-1">
-                        <AlertTriangle className="h-3 w-3" />
-                        <span>No source available - using system default</span>
-                      </div>
-                    )}
-                    {transcriptSource.note && <div className="mt-1 text-xs text-gray-500">{transcriptSource.note}</div>}
-                    {transcriptSource.sourcesTried?.length > 0 && !transcriptSource.scraped && (
-                      <div className="mt-1 text-xs text-gray-500">Sources tried: {transcriptSource.sourcesTried.join(', ')}</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Claims JSON Input */}
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm text-gray-400 font-medium">Claims JSON (from Claude Skill)</label>
-                <button onClick={loadSampleClaims} className="text-sm px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors flex items-center space-x-1">
-                  <PlayCircle className="h-4 w-4" />
-                  <span>Load Sample Claims</span>
-                </button>
-              </div>
-              <textarea
-                value={claimsJson}
-                onChange={(e) => setClaimsJson(e.target.value)}
-                rows={8}
-                placeholder='Paste an array of claims here: [{"speaker":"CEO Name","role":"CEO","metric":"Revenue","claimed":29.1,"unit":"billion","text":"..."}]'
-                className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-              />
-              {verifyError && <div className="mt-3 text-sm text-red-300">{verifyError}</div>}
-              {verificationResult?.summary && (
-                <div className="mt-3 space-y-2">
-                  <div className="text-sm text-gray-300">
-                    <span className="font-semibold">Summary:</span>
-                    <span className="ml-2 text-green-400">✓ {verificationResult.summary.accurate} accurate</span>
-                    <span className="ml-2 text-red-400">✗ {verificationResult.summary.discrepant} discrepant</span>
-                    <span className="ml-2 text-gray-400">? {verificationResult.summary.unverifiable} unverifiable</span>
-                    <span className="ml-2 text-blue-300 font-semibold">{verificationResult.summary.accuracyScore}% accuracy</span>
-                  </div>
-                  <button onClick={() => setActiveTab('search')} className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-                    View results in Search tab →
-                  </button>
-                </div>
-              )}
-            </div>
+          {/* How it works */}
+          <div className="px-4 py-3 rounded-lg bg-gray-900 border border-gray-800">
+            <p className="text-xs text-gray-500 leading-relaxed">
+              <strong className="text-gray-400">How it works:</strong> Uses sample earnings call claims for the selected company based on actual SEC financial data, then independently verifies each claim against the structured XBRL filings. Claims are classified as Accurate, Minor Discrepancy, Major Discrepancy, Misleading, or Unverifiable.
+            </p>
           </div>
+
+          {/* Summary after verification */}
+          {verificationResult?.summary && (
+            <div className="flex items-center gap-4 px-4 py-3 rounded-lg bg-gray-900 border border-gray-700 text-sm">
+              <span className="text-gray-400 font-semibold">Results:</span>
+              <span className="text-green-400">✓ {verificationResult.summary.accurate} accurate</span>
+              <span className="text-red-400">✗ {verificationResult.summary.discrepant} discrepant</span>
+              <span className="text-gray-500">? {verificationResult.summary.unverifiable} unverifiable</span>
+              <span className="text-cyan-400 font-bold">{verificationResult.summary.accuracyScore}%</span>
+              <button onClick={() => setActiveTab('search')} className="ml-auto text-cyan-400 hover:text-cyan-300 text-xs font-semibold">View results →</button>
+            </div>
+          )}
         </div>
       )}
 
