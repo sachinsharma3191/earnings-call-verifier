@@ -314,4 +314,6 @@ earnings-call-verifier/
 
 ## License
 
-MIT
+**All Rights Reserved** © 2025 Sachin Sharma
+
+This source code is proprietary and confidential. No part of this codebase may be reproduced, distributed, modified, or used in any form without explicit written permission from the author.
