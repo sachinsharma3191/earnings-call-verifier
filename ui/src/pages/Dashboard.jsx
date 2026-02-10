@@ -105,45 +105,63 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
 
       {/* Key Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="stat-card">
+        <div
+          onClick={() => document.getElementById('companies-section')?.scrollIntoView({ behavior: 'smooth' })}
+          className="stat-card cursor-pointer hover:scale-[1.03] hover:border-blue-500/50 transition-all duration-200 group"
+          title="Click to view companies"
+        >
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-400 text-sm font-medium">Companies</span>
-            <FileText className="h-5 w-5 text-blue-400" />
+            <FileText className="h-5 w-5 text-blue-400 group-hover:scale-125 transition-transform" />
           </div>
           <div className="text-3xl font-bold">{totalCompanies}</div>
-          <p className="text-xs text-gray-500 mt-2">SEC EDGAR-backed financials</p>
+          <p className="text-xs text-gray-500 mt-2 group-hover:text-blue-400 transition-colors">Click to browse companies</p>
         </div>
 
-        <div className="stat-card border-green-500/30">
+        <div
+          onClick={() => document.getElementById('companies-section')?.scrollIntoView({ behavior: 'smooth' })}
+          className="stat-card border-green-500/30 cursor-pointer hover:scale-[1.03] hover:border-green-500/50 transition-all duration-200 group"
+          title="Click to view loaded companies"
+        >
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-400 text-sm font-medium">Loaded</span>
-            <Database className="h-5 w-5 text-green-400" />
+            <Database className="h-5 w-5 text-green-400 group-hover:scale-125 transition-transform" />
           </div>
           <div className="text-3xl font-bold text-green-400">{companiesLoaded}</div>
-          <p className="text-xs text-gray-500 mt-2">Company facts retrieved</p>
+          <p className="text-xs text-gray-500 mt-2 group-hover:text-green-400 transition-colors">Click to browse companies</p>
         </div>
 
-        <div className="stat-card border-yellow-500/30">
+        <div
+          onClick={() => document.getElementById('discrepancies-section')?.scrollIntoView({ behavior: 'smooth' })}
+          className="stat-card border-yellow-500/30 cursor-pointer hover:scale-[1.03] hover:border-yellow-500/50 transition-all duration-200 group"
+          title="Click to view discrepancies"
+        >
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-400 text-sm font-medium">Quarters</span>
-            <Building2 className="h-5 w-5 text-yellow-400" />
+            <Building2 className="h-5 w-5 text-yellow-400 group-hover:scale-125 transition-transform" />
           </div>
           <div className="text-3xl font-bold text-yellow-400">4</div>
-          <p className="text-xs text-gray-500 mt-2">Latest SEC 10-Q periods</p>
+          <p className="text-xs text-gray-500 mt-2 group-hover:text-yellow-400 transition-colors">Click to view discrepancies</p>
         </div>
 
-        <div className="stat-card border-purple-500/30">
+        <a
+          href="https://claude.ai"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="stat-card border-purple-500/30 cursor-pointer hover:scale-[1.03] hover:border-purple-500/50 transition-all duration-200 group no-underline"
+          title="Open Claude AI for claim extraction"
+        >
           <div className="flex items-center justify-between mb-2">
             <span className="text-gray-400 text-sm font-medium">Claims</span>
-            <FileText className="h-5 w-5 text-purple-400" />
+            <FileText className="h-5 w-5 text-purple-400 group-hover:scale-125 transition-transform" />
           </div>
           <div className="text-3xl font-bold text-purple-400">Claude Skill</div>
-          <p className="text-xs text-gray-500 mt-2">Extraction in Claude</p>
-        </div>
+          <p className="text-xs text-gray-500 mt-2 group-hover:text-purple-400 transition-colors">Click to open Claude AI ↗</p>
+        </a>
       </div>
 
       {/* Top 5 Discrepancies */}
-      <div className="card p-6 bg-red-900/5 border-red-500/20">
+      <div id="discrepancies-section" className="card p-6 bg-red-900/5 border-red-500/20">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
           <h3 className="text-lg font-semibold flex items-center">
             <AlertTriangle className="h-5 w-5 mr-2 text-yellow-400" />
@@ -224,7 +242,7 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
       </div>
 
       {/* Companies List — searchable + sortable */}
-      <div>
+      <div id="companies-section">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
           <h3 className="text-2xl font-bold">Companies Analyzed</h3>
           <div className="flex items-center gap-3 w-full sm:w-auto">
