@@ -29,17 +29,22 @@ function ClaimExplorer({ companies }) {
 
   const sampleClaims = {
     AAPL: [
-      { speaker: "Tim Cook", role: "CEO", text: "Our Q4 revenue came in at $95.3 billion, representing growth of 6% year over year", metric: "Revenue", claimed: 95.3, unit: "billion" },
-      { speaker: "Luca Maestri", role: "CFO", text: "Operating income came in at $31.5 billion, representing an operating margin of 33.1%", metric: "Operating Income", claimed: 31.5, unit: "billion" },
-      { speaker: "Tim Cook", role: "CEO", text: "Our gross margin expanded to 46.2%, up 150 basis points year over year", metric: "Gross Margin", claimed: 46.2, unit: "percent" }
+      { speaker: "Tim Cook", role: "CEO", text: "Our Q4 revenue came in at $95.3 billion", metric: "Revenue", claimed: 95.3, unit: "billion" },
+      { speaker: "Tim Cook", role: "CEO", text: "Revenue grew 6% year over year", metric: "Revenue", claimed: 6, unit: "percent", type: "yoy_percent" },
+      { speaker: "Luca Maestri", role: "CFO", text: "Operating income came in at $31.5 billion", metric: "Operating Income", claimed: 31.5, unit: "billion" },
+      { speaker: "Tim Cook", role: "CEO", text: "Our gross margin expanded to 46.2%", metric: "Gross Margin", claimed: 46.2, unit: "percent" }
     ],
     NVDA: [
-      { speaker: "Jensen Huang", role: "CEO", text: "Revenue for the quarter was $22.1 billion, up 265% from a year ago", metric: "Revenue", claimed: 22.1, unit: "billion" },
-      { speaker: "Colette Kress", role: "CFO", text: "Gross margin came in at 76.2%, reflecting strong demand for our data center products", metric: "Gross Margin", claimed: 76.2, unit: "percent" }
+      { speaker: "Jensen Huang", role: "CEO", text: "Revenue for the quarter was $22.1 billion", metric: "Revenue", claimed: 22.1, unit: "billion" },
+      { speaker: "Jensen Huang", role: "CEO", text: "Revenue was up 265% from a year ago", metric: "Revenue", claimed: 265, unit: "percent", type: "yoy_percent" },
+      { speaker: "Colette Kress", role: "CFO", text: "Net income grew 33% year over year", metric: "Net Income", claimed: 33, unit: "percent", type: "yoy_percent" },
+      { speaker: "Colette Kress", role: "CFO", text: "Gross margin came in at 76.2%", metric: "Gross Margin", claimed: 76.2, unit: "percent" }
     ],
     MSFT: [
-      { speaker: "Satya Nadella", role: "CEO", text: "Revenue was $62.0 billion, up 18% year-over-year", metric: "Revenue", claimed: 62.0, unit: "billion" },
-      { speaker: "Amy Hood", role: "CFO", text: "Operating income increased to $27.2 billion", metric: "Operating Income", claimed: 27.2, unit: "billion" }
+      { speaker: "Satya Nadella", role: "CEO", text: "Revenue was $62.0 billion", metric: "Revenue", claimed: 62.0, unit: "billion" },
+      { speaker: "Satya Nadella", role: "CEO", text: "Revenue grew 18% year-over-year", metric: "Revenue", claimed: 18, unit: "percent", type: "yoy_percent" },
+      { speaker: "Amy Hood", role: "CFO", text: "Operating income increased to $27.2 billion", metric: "Operating Income", claimed: 27.2, unit: "billion" },
+      { speaker: "Amy Hood", role: "CFO", text: "EPS grew 21% year over year", metric: "EPS", claimed: 21, unit: "percent", type: "yoy_percent" }
     ]
   };
 
@@ -477,27 +482,61 @@ function ClaimExplorer({ companies }) {
                         {claim.context && <p className="text-xs text-gray-500 mt-2">Context: {claim.context}</p>}
                       </div>
 
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <div className="text-xs text-gray-400 mb-1 font-medium">Claimed</div>
-                          <div className="font-semibold text-lg">
-                            {claim.unit === 'billion' ? '$' : ''}{claim.claimed}{claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}
+                      {(claim.type === 'yoy_percent' || claim.type === 'yoy_growth') ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-semibold px-2 py-0.5 bg-purple-600/30 text-purple-300 rounded">YoY GROWTH</span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <div className="text-xs text-gray-400 mb-1 font-medium">Claimed Growth</div>
+                              <div className="font-semibold text-lg">{claim.claimed}%</div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-400 mb-1 font-medium">Actual Growth</div>
+                              <div className="font-semibold text-lg text-green-400">
+                                {claim.actual != null ? `${claim.actual}%` : 'N/A'}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-400 mb-1 font-medium">Difference</div>
+                              <div className={`font-semibold text-lg ${claim.status === 'discrepant' ? 'text-red-400' : 'text-gray-300'}`}>
+                                {claim.difference != null ? `${claim.difference > 0 ? '+' : ''}${claim.difference.toFixed(2)} pts` : 'N/A'}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-xs text-gray-400 mb-1 font-medium">Prior Year → Current</div>
+                              <div className="font-semibold text-sm text-gray-300">
+                                {claim.priorValue != null && claim.currentValue != null
+                                  ? `${claim.unit === 'billion' ? '$' : ''}${claim.priorValue}${claim.unit === 'billion' ? 'B' : ''} → ${claim.unit === 'billion' ? '$' : ''}${claim.currentValue}${claim.unit === 'billion' ? 'B' : ''}`
+                                  : 'N/A'}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <div className="text-xs text-gray-400 mb-1 font-medium">SEC Filing</div>
-                          <div className="font-semibold text-lg text-green-400">
-                            {claim.unit === 'billion' ? '$' : ''}{claim.actual}{claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}
+                      ) : (
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <div className="text-xs text-gray-400 mb-1 font-medium">Claimed</div>
+                            <div className="font-semibold text-lg">
+                              {claim.unit === 'billion' ? '$' : ''}{claim.claimed}{claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-400 mb-1 font-medium">SEC Filing</div>
+                            <div className="font-semibold text-lg text-green-400">
+                              {claim.unit === 'billion' ? '$' : ''}{claim.actual}{claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-400 mb-1 font-medium">Difference</div>
+                            <div className={`font-semibold text-lg ${claim.status === 'discrepant' ? 'text-red-400' : 'text-gray-300'}`}>
+                              {claim.difference != null ? `${claim.difference > 0 ? '+' : ''}${claim.difference.toFixed(2)}${claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? 'pts' : ''}` : 'N/A'}
+                              {claim.percentDiff != null && <span className="text-xs ml-1">({claim.percentDiff.toFixed(2)}%)</span>}
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <div className="text-xs text-gray-400 mb-1 font-medium">Difference</div>
-                          <div className={`font-semibold text-lg ${claim.status === 'discrepant' ? 'text-red-400' : 'text-gray-300'}`}>
-                            {claim.difference != null ? `${claim.difference > 0 ? '+' : ''}${claim.difference.toFixed(2)}${claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? 'pts' : ''}` : 'N/A'}
-                            {claim.percentDiff != null && <span className="text-xs ml-1">({claim.percentDiff.toFixed(2)}%)</span>}
-                          </div>
-                        </div>
-                      </div>
+                      )}
 
                       {claim.flag && (
                         <div className="mt-4 pt-4 border-t border-gray-600 flex items-center justify-between">
