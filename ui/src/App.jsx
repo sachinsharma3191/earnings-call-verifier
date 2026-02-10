@@ -3,6 +3,10 @@ import { TrendingUp, BarChart3, Search, Info } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import CompanyDetail from './pages/CompanyDetail';
 import ClaimExplorer from './pages/ClaimExplorer';
+import LegacyDashboard from './legacy/pages/Dashboard';
+import LegacyCompanyDetail from './legacy/pages/CompanyDetail';
+import LegacyClaimExplorer from './legacy/pages/ClaimExplorer';
+import { companiesData as legacyCompaniesData } from './legacy/data/verificationData';
 import About from './pages/About';
 import { apiClient } from './utils/apiClient';
 
@@ -64,7 +68,8 @@ function App() {
   }, []);
 
   const navigation = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'dashboard', label: 'Live (SEC)', icon: BarChart3 },
+    { id: 'legacy', label: 'Legacy Demo', icon: BarChart3 },
     { id: 'explorer', label: 'Claims Explorer', icon: Search },
     { id: 'about', label: 'About', icon: Info },
   ];
@@ -90,6 +95,25 @@ function App() {
             onBack={() => setCurrentView('dashboard')}
           />
         );
+      case 'legacy':
+        return (
+          <LegacyDashboard 
+            companies={legacyCompaniesData}
+            onSelectCompany={(company) => {
+              setSelectedCompany(company);
+              setCurrentView('legacy-company');
+            }}
+          />
+        );
+      case 'legacy-company':
+        return (
+          <LegacyCompanyDetail 
+            company={selectedCompany}
+            onBack={() => setCurrentView('legacy')}
+          />
+        );
+      case 'legacy-explorer':
+        return <LegacyClaimExplorer companies={legacyCompaniesData} />;
       case 'explorer':
         return <ClaimExplorer companies={companies} />;
       case 'about':
@@ -123,7 +147,10 @@ function App() {
             <nav className="flex space-x-2">
               {navigation.map((item) => {
                 const Icon = item.icon;
-                const isActive = currentView === item.id || (currentView === 'company' && item.id === 'dashboard');
+                const isActive = currentView === item.id || 
+                  (currentView === 'company' && item.id === 'dashboard') ||
+                  (currentView === 'legacy-company' && item.id === 'legacy') ||
+                  (currentView === 'legacy-explorer' && item.id === 'legacy');
                 
                 return (
                   <button
