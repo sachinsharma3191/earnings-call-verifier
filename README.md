@@ -143,8 +143,6 @@ MIT License - See LICENSE file
 
 ## 👤 Author
 
-Built by Claude (Anthropic) for Kip Engineering Take-Home Assignment
-
 **Time to Build**: ~12 hours
 - 4 hours: Backend (Node/TypeScript + SEC verification)
 - 6 hours: Frontend (React application)
@@ -175,5 +173,3 @@ This demonstrates:
 **Next Steps**: Scale to 50+ companies, integrate real transcript APIs, deploy as SaaS
 
 ---
-
-**🚀 Ready for production • Built with ❤️ for Kip Engineering**
