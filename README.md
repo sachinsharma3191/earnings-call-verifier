@@ -247,25 +247,27 @@ Switch to **Search tab** to filter by severity, metric, speaker, or text. The Da
 ```
 earnings-call-verifier/
 ├── api/
-│   ├── server.js                  # Fastify entry point
-│   ├── worker.js                  # Background cache worker
-│   ├── _lib/
-│   │   ├── fastifyApp.js          # Route definitions
-│   │   ├── init.js                # Synchronous cache bootstrap
-│   │   ├── cache/
-│   │   │   ├── AggregateCache.js  # In-memory + disk
-│   │   │   ├── CacheRefresher.js  # Worker orchestrator
-│   │   │   └── FileCache.js       # Per-company file cache
-│   │   ├── constants/
-│   │   │   ├── companies.js       # 10 company tickers/CIKs
-│   │   │   └── quarters.js        # Quarter definitions + fallback data
-│   │   ├── services/
-│   │   │   ├── SECDataService.js  # SEC EDGAR XBRL extraction
-│   │   │   └── TranscriptService.js
-│   │   └── controllers/
-│   ├── companies/                 # Vercel serverless route handlers
-│   ├── verification/
-│   └── transcripts/
+│   └── [[...path]].js             # Single Vercel catch-all serverless function
+├── bin/
+│   ├── server.js                  # Local dev server (imports from ../lib/)
+│   └── worker.js                  # Background cache worker
+├── lib/
+│   ├── fastifyApp.js              # Route definitions
+│   ├── init.js                    # Synchronous cache bootstrap
+│   ├── cache/
+│   │   ├── AggregateCache.js      # In-memory + disk
+│   │   ├── CacheRefresher.js      # Worker orchestrator
+│   │   └── FileCache.js           # Per-company file cache
+│   ├── constants/
+│   │   ├── companies.js           # 10 company tickers/CIKs
+│   │   └── quarters.js            # Quarter definitions + fallback data
+│   ├── services/
+│   │   ├── SECDataService.js      # SEC EDGAR XBRL extraction
+│   │   ├── TranscriptService.js   # Transcript scraping
+│   │   ├── DataAggregator.js      # Combines SEC + transcript data
+│   │   ├── VerificationService.js # Claim verification logic
+│   │   └── ClaimVerificationService.js
+│   └── controllers/
 ├── ui/
 │   ├── src/
 │   │   ├── App.jsx
@@ -274,9 +276,10 @@ earnings-call-verifier/
 │   │   │   ├── CompanyDetail.jsx
 │   │   │   ├── ClaimExplorer.jsx
 │   │   │   └── About.jsx
+│   │   ├── data/companyMeta.js    # Company metadata (sector, color, severity)
 │   │   ├── context/CompaniesContext.jsx
 │   │   └── utils/apiClient.js
-├── scripts/                       # Prefetch & utility scripts
+├── scripts/                       # Debug & utility scripts
 ├── .cache/                        # Pre-built data (gitignored)
 ├── vercel.json
 └── package.json
