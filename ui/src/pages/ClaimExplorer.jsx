@@ -203,11 +203,15 @@ function ClaimExplorer({ companies }) {
               }}
               className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {companies.map((company) => (
-                <option key={company.ticker} value={company.ticker}>
-                  {company.ticker} - {company.name}
-                </option>
-              ))}
+              {companies?.length > 0 ? (
+                companies.map((company) => (
+                  <option key={company.ticker} value={company.ticker}>
+                    {company.ticker}{company.name ? ` - ${company.name}` : ''}
+                  </option>
+                ))
+              ) : (
+                <option value="">Loading companies...</option>
+              )}
             </select>
           </div>
 
