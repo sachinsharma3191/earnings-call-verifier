@@ -69,7 +69,7 @@ function App() {
 
   const navigation = [
     { id: 'dashboard', label: 'Live (SEC)', icon: BarChart3 },
-    { id: 'legacy', label: 'Legacy Demo', icon: BarChart3 },
+    { id: 'legacy', label: 'Static', icon: BarChart3 },
     { id: 'explorer', label: 'Claims Explorer', icon: Search },
     { id: 'about', label: 'About', icon: Info },
   ];
