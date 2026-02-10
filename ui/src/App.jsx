@@ -13,6 +13,7 @@ import { apiClient } from './utils/apiClient';
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [selectedCompany, setSelectedCompany] = useState(null);
+  const [mode, setMode] = useState('static'); // 'static' or 'live'
   const [companies, setCompanies] = useState([]);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
   const [companiesError, setCompaniesError] = useState(null);
@@ -68,8 +69,7 @@ function App() {
   }, []);
 
   const navigation = [
-    { id: 'dashboard', label: 'Live (SEC)', icon: BarChart3 },
-    { id: 'legacy', label: 'Static', icon: BarChart3 },
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'explorer', label: 'Claims Explorer', icon: Search },
     { id: 'about', label: 'About', icon: Info },
   ];
@@ -77,6 +77,17 @@ function App() {
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
+        if (mode === 'static') {
+          return (
+            <LegacyDashboard 
+              companies={legacyCompaniesData}
+              onSelectCompany={(company) => {
+                setSelectedCompany(company);
+                setCurrentView('company');
+              }}
+            />
+          );
+        }
         return (
           <Dashboard 
             companies={companies}
@@ -89,37 +100,31 @@ function App() {
           />
         );
       case 'company':
+        if (mode === 'static') {
+          return (
+            <LegacyCompanyDetail 
+              company={selectedCompany}
+              onBack={() => setCurrentView('dashboard')}
+            />
+          );
+        }
         return (
           <CompanyDetail 
             company={selectedCompany}
             onBack={() => setCurrentView('dashboard')}
           />
         );
-      case 'legacy':
-        return (
-          <LegacyDashboard 
-            companies={legacyCompaniesData}
-            onSelectCompany={(company) => {
-              setSelectedCompany(company);
-              setCurrentView('legacy-company');
-            }}
-          />
-        );
-      case 'legacy-company':
-        return (
-          <LegacyCompanyDetail 
-            company={selectedCompany}
-            onBack={() => setCurrentView('legacy')}
-          />
-        );
-      case 'legacy-explorer':
-        return <LegacyClaimExplorer companies={legacyCompaniesData} />;
       case 'explorer':
+        if (mode === 'static') {
+          return <LegacyClaimExplorer companies={legacyCompaniesData} />;
+        }
         return <ClaimExplorer companies={companies} />;
       case 'about':
         return <About />;
       default:
-        return <Dashboard companies={companies} loading={loadingCompanies} error={companiesError} />;
+        return mode === 'static' 
+          ? <LegacyDashboard companies={legacyCompaniesData} onSelectCompany={(company) => { setSelectedCompany(company); setCurrentView('company'); }} />
+          : <Dashboard companies={companies} loading={loadingCompanies} error={companiesError} onSelectCompany={(company) => { setSelectedCompany(company); setCurrentView('company'); }} />;
     }
   };
 
@@ -130,16 +135,41 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <div 
-              className="flex items-center space-x-3 cursor-pointer group"
-              onClick={() => setCurrentView('dashboard')}
-            >
-              <TrendingUp className="h-8 w-8 text-blue-500 group-hover:text-blue-400 transition-colors" />
-              <div>
-                <h1 className="text-xl font-bold gradient-text">
-                  Earnings Verifier
-                </h1>
-                <p className="text-xs text-gray-400">SEC Filing Analysis</p>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3 cursor-pointer group"
+                onClick={() => setCurrentView('dashboard')}
+              >
+                <TrendingUp className="h-8 w-8 text-blue-500 group-hover:text-blue-400 transition-colors" />
+                <div>
+                  <h1 className="text-xl font-bold gradient-text">
+                    Earnings Verifier
+                  </h1>
+                  <p className="text-xs text-gray-400">SEC Filing Analysis</p>
+                </div>
+              </div>
+              
+              {/* Mode Toggle */}
+              <div className="flex items-center space-x-2 px-3 py-1 bg-gray-700/50 rounded-lg border border-gray-600">
+                <button
+                  onClick={() => setMode('static')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-all ${
+                    mode === 'static'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Static
+                </button>
+                <button
+                  onClick={() => setMode('live')}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-all ${
+                    mode === 'live'
+                      ? 'bg-green-600 text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Live
+                </button>
               </div>
             </div>
 
@@ -148,9 +178,7 @@ function App() {
               {navigation.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentView === item.id || 
-                  (currentView === 'company' && item.id === 'dashboard') ||
-                  (currentView === 'legacy-company' && item.id === 'legacy') ||
-                  (currentView === 'legacy-explorer' && item.id === 'legacy');
+                  (currentView === 'company' && item.id === 'dashboard');
                 
                 return (
                   <button
