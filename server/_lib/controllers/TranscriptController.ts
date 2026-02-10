@@ -1,0 +1,38 @@
+// Thin controller - delegates to service layer
+import { ServiceContainer } from '../container/ServiceContainer';
+
+export class TranscriptController {
+  private readonly transcriptService;
+
+  constructor() {
+    const container = ServiceContainer.getInstance();
+    this.transcriptService = container.getTranscriptService();
+  }
+
+  async getTranscript(ticker: string, year: number, quarter: number) {
+    if (!ticker || !year || !quarter) {
+      throw new Error('Missing required parameters: ticker, year, quarter');
+    }
+
+    const transcript = await this.transcriptService.getTranscript(ticker, year, quarter);
+
+    if (!transcript) {
+      throw new Error('Transcript not found');
+    }
+
+    return {
+      ticker,
+      year,
+      quarter,
+      transcript
+    };
+  }
+
+  async listTranscripts(ticker: string) {
+    if (!ticker) {
+      throw new Error('Missing required parameter: ticker');
+    }
+
+    return await this.transcriptService.listAvailableTranscripts(ticker);
+  }
+}
