@@ -48,14 +48,19 @@ export class SECDataService {
     const revenueData = facts.Revenues?.units?.USD || facts.RevenueFromContractWithCustomerExcludingAssessedTax?.units?.USD || [];
     
     revenueData.forEach((item) => {
-      if (item.form === '10-Q') {
-        const key = `${item.fy}-${item.fp}`;
+      // Extract quarter from frame field (e.g., "CY2024Q3" -> "Q3")
+      const frameMatch = item.frame?.match(/Q(\d)$/);
+      if (frameMatch && item.end) {
+        const quarter = `Q${frameMatch[1]}`;
+        const year = new Date(item.end).getFullYear();
+        const key = `${year}-${quarter}`;
         
-        if (!quartersMap.has(key)) {
+        // Only keep the most recent filing for each quarter
+        if (!quartersMap.has(key) || new Date(item.filed) > new Date(quartersMap.get(key).filed)) {
           quartersMap.set(key, {
             end_date: item.end,
-            fiscal_year: item.fy,
-            fiscal_period: item.fp,
+            fiscal_year: year,
+            fiscal_period: quarter,
             filed: item.filed,
             form: item.form,
             Revenues: item.val / 1e9,
