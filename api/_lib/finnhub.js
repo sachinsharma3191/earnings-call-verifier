@@ -16,7 +16,7 @@ export async function getEarningsTranscript(
 
   try {
     const response = await fetch(
-      `${BASE_URL}/stock/earnings-call-transcripts?symbol=${symbol}&token=${FINNHUB_API_KEY}`,
+      `${BASE_URL}/stock/earnings-call-transcripts?symbol=${symbol}`,
       {
         headers: {
           'X-Finnhub-Token': FINNHUB_API_KEY
@@ -49,7 +49,12 @@ export async function listAvailableTranscripts(symbol) {
 
   try {
     const response = await fetch(
-      `${BASE_URL}/stock/earnings-call-transcripts?symbol=${symbol}&token=${FINNHUB_API_KEY}`
+      `${BASE_URL}/stock/earnings-call-transcripts?symbol=${symbol}`,
+      {
+        headers: {
+          'X-Finnhub-Token': FINNHUB_API_KEY
+        }
+      }
     );
 
     if (!response.ok) {
