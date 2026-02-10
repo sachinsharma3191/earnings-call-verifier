@@ -43,35 +43,42 @@ export class SECDataService {
 
   extractQuarterlyData(data) {
     const facts = data.facts?.['us-gaap'] || {};
-    const quarters = [];
+    const quartersMap = new Map();
 
     const revenueData = facts.Revenues?.units?.USD || facts.RevenueFromContractWithCustomerExcludingAssessedTax?.units?.USD || [];
     
     revenueData.forEach((item) => {
-      if (item.form === '10-Q' || item.form === '10-K') {
-        quarters.push({
-          end_date: item.end,
-          fiscal_year: item.fy,
-          fiscal_period: item.fp,
-          filed: item.filed,
-          form: item.form,
-          Revenues: item.val / 1e9,
-          NetIncome: this.extractMetric(facts, 'NetIncomeLoss', item.end) / 1e9,
-          GrossProfit: this.extractMetric(facts, 'GrossProfit', item.end) / 1e9,
-          OperatingIncome: this.extractMetric(facts, 'OperatingIncomeLoss', item.end) / 1e9,
-          CostOfRevenue: this.extractMetric(facts, 'CostOfRevenue', item.end) / 1e9,
-          OperatingExpenses: this.extractMetric(facts, 'OperatingExpenses', item.end) / 1e9,
-          EPS: this.extractMetric(facts, 'EarningsPerShareBasic', item.end)
-        });
+      if (item.form === '10-Q') {
+        const key = `${item.fy}-${item.fp}`;
+        
+        if (!quartersMap.has(key)) {
+          quartersMap.set(key, {
+            end_date: item.end,
+            fiscal_year: item.fy,
+            fiscal_period: item.fp,
+            filed: item.filed,
+            form: item.form,
+            Revenues: item.val / 1e9,
+            NetIncome: this.extractMetric(facts, 'NetIncomeLoss', item.end) / 1e9,
+            GrossProfit: this.extractMetric(facts, 'GrossProfit', item.end) / 1e9,
+            OperatingIncome: this.extractMetric(facts, 'OperatingIncomeLoss', item.end) / 1e9,
+            CostOfRevenue: this.extractMetric(facts, 'CostOfRevenue', item.end) / 1e9,
+            OperatingExpenses: this.extractMetric(facts, 'OperatingExpenses', item.end) / 1e9,
+            EPS: this.extractMetric(facts, 'EarningsPerShareBasic', item.end)
+          });
+        }
       }
     });
 
+    const quarters = Array.from(quartersMap.values());
+    
     return quarters.sort((a, b) => {
       if (a.fiscal_year !== b.fiscal_year) {
         return b.fiscal_year - a.fiscal_year;
       }
-      return b.fiscal_period.localeCompare(a.fiscal_period);
-    });
+      const qOrder = { 'Q4': 4, 'Q3': 3, 'Q2': 2, 'Q1': 1 };
+      return (qOrder[b.fiscal_period] || 0) - (qOrder[a.fiscal_period] || 0);
+    }).slice(0, 8);
   }
 
   extractMetric(facts, metricName, endDate) {
