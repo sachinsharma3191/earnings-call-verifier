@@ -1,275 +1,215 @@
-# 📊 Earnings Call Claim Verifier
+# Earnings Call Claim Verifier
 
-> **Full-stack application that automatically verifies executive claims from earnings calls against official SEC filings**
+> **Full-stack application that verifies executive claims from earnings calls against official SEC EDGAR filings**
 
-Built for Kip Engineering Take-Home Assignment
-
-🎯 **Complete System**: React Frontend + Vercel Serverless API (Node.js) + SEC EDGAR Integration
+**Stack**: React + Vite frontend, Fastify API (Node.js), SEC EDGAR XBRL integration, multi-layer caching
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### Option 1: Local Dev (Recommended)
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Local Development
 
 ```bash
+# Install dependencies (root + UI)
 npm install
-npx vercel dev
+
+# Start API server (port 3000)
+npm run api
+
+# In another terminal — start UI dev server (port 5173, proxies /api to 3000)
+npm run dev
 ```
 
-This starts a single local server that serves:
+Open [http://localhost:5173](http://localhost:5173)
 
-- Frontend UI (Vite/React)
-- Backend API routes under `/api/*` (Vercel serverless functions)
+### Background Worker (optional)
 
-### Option 2: Build
+The cache worker fetches live SEC data and scrapes transcripts. It runs automatically on server start, but you can trigger it manually:
+
+```bash
+npm run worker          # One-shot: fetch all companies
+npm run worker:watch    # Continuous: re-fetch every 30 min
+```
+
+### Build for Production
 
 ```bash
 npm run build
 ```
 
-### Option 3: Deploy (Vercel)
+---
 
-1. Push to GitHub
-2. Import the repo into Vercel
-3. Deploy
+## Features
+
+### Dashboard
+- **Key stats grid** — clickable cards that scroll to relevant sections or open external links
+- **Top Discrepancies** — fetched from `/api/discrepancies/top`, computed from real cached SEC data; searchable and sortable by ticker, metric, speaker, severity, % difference
+- **Companies list** — searchable by ticker/name/CIK, sortable by ticker/name/quarter
+- **Refresh button** — reload discrepancies when cache is still warming up
+
+### Company Detail
+- SEC filing metrics per quarter: Revenue, Net Income, Gross Profit, Operating Income, Cost of Revenue, Operating Expenses, EPS
+- Quarter selector with data source attribution
+- Transcript source info with visual indicators
+
+### Claims Explorer (Two Tabs)
+- **Verify Claims** — select company & quarter, paste Claude-extracted claims JSON, verify against SEC data
+- **Search Claims** — filter verified results by text/speaker/metric/status/severity; auto-switches after verification
 
 ---
 
-## 📋 Data Coverage: 10 Companies × 4 Quarters (40 Data Points)
+## Companies Covered
 
-This implementation provides comprehensive coverage of **10 public companies** across their **last 4 quarters** (Q1-Q4 2025), totaling **40 data points** with full source attribution and transparent fallback policies.
+| Ticker | Company | Sector |
+|--------|---------|--------|
+| AAPL | Apple Inc. | Technology |
+| NVDA | NVIDIA Corporation | Semiconductors |
+| MSFT | Microsoft Corporation | Technology |
+| GOOGL | Alphabet Inc. | Technology |
+| AMZN | Amazon.com Inc. | E-commerce |
+| META | Meta Platforms Inc. | Social Media |
+| TSLA | Tesla Inc. | Automotive |
+| JPM | JPMorgan Chase & Co. | Banking |
+| JNJ | Johnson & Johnson | Healthcare |
+| WMT | Walmart Inc. | Retail |
 
-### Companies Covered
-
-1. **AAPL** - Apple Inc.
-2. **NVDA** - NVIDIA Corporation
-3. **MSFT** - Microsoft Corporation
-4. **GOOGL** - Alphabet Inc.
-5. **AMZN** - Amazon.com Inc.
-6. **META** - Meta Platforms Inc.
-7. **TSLA** - Tesla Inc.
-8. **JPM** - JPMorgan Chase & Co.
-9. **JNJ** - Johnson & Johnson
-10. **WMT** - Walmart Inc.
-
-### Transcript Sourcing Strategy
-
-#### Source Attribution Policy
-
-**Transcript Sources**: All earnings call transcripts are sourced from publicly accessible publishers with explicit citation and provenance tracking:
-- **The Motley Fool** (transcripts.fool.com) - 15 transcripts
-- **Yahoo Finance** (finance.yahoo.com) - 13 transcripts
-- **Investing.com** - 9 transcripts
-- **SEC EDGAR Proxy** (10-Q/10-K MD&A) - 3 documents
-
-**Verification Standard**: All quantitative claims are verified against official **SEC EDGAR filings** (10-Q, 10-K) regardless of transcript source. SEC EDGAR serves as the single source of truth for financial data verification.
-
-#### Fallback Policy Implementation
-
-**Hybrid Approach (Option B + C)**:
-
-When a specific company/quarter transcript is missing or gated:
-
-1. **Primary**: Use publicly accessible transcript source (Motley Fool, Yahoo Finance, Investing.com)
-2. **Fallback**: Use SEC 10-Q/10-K MD&A sections as proxy documents (clearly labeled)
-3. **Last Resort**: Skip quarter and explicitly document coverage gap
-
-**Current Coverage**: 
-- **37 Full Transcripts** (92.5%)
-- **3 Proxy Documents** (7.5%) - AAPL Q1-2025, META Q1-2025, JNJ Q2-2025
-- **0 Coverage Gaps** (0%)
-- **Total Coverage**: 100% (40/40 data points)
-
-#### UI Implementation
-
-The UI displays transcript source attribution for each company/quarter:
-- **Source name** (e.g., "The Motley Fool", "Yahoo Finance")
-- **Document type** (Full Transcript vs Proxy Document)
-- **Visual indicators**: 
-  - ✅ Green for full transcripts
-  - ⚠️ Yellow warning for proxy documents with explanation
-- **Clear labeling**: "Proxy Document (SEC 10-Q/10-K MD&A) - Full transcript unavailable"
-
-#### API Endpoints
-
-Access transcript source information programmatically:
-
-```bash
-# Get full manifest (all 40 data points)
-GET /api/transcripts/sources
-
-# Get company-specific sources (4 quarters)
-GET /api/transcripts/sources/AAPL
-
-# Get specific quarter source
-GET /api/transcripts/sources/AAPL/Q1-2025
-```
-
-**Response includes**:
-- Source name and URL
-- Document type (transcript/proxy)
-- Filing date
-- Availability status
-- Coverage notes
-   - Investing.com
-   - Seeking Alpha (seekingalpha.com)
-3. **Fallback**: 10-Q/10-K MD&A sections (clearly labeled as proxy when used)
-
-#### Verification Source of Truth
-
-**All claims are verified against official SEC EDGAR filings** (10-Q/10-K XBRL data), ensuring accuracy regardless of transcript source.
-
-#### Coverage Policy
-
-- **Missing transcripts**: Explicitly documented in coverage report
-- **Gated content**: Fallback to alternative public source with citation
-- **Provenance**: Every transcript includes source URL and retrieval date
-
-### Companies Analyzed
-
-| Ticker | Company | Sector | Q1 2024 | Q2 2024 | Q3 2024 | Q4 2024 |
-|--------|---------|--------|---------|---------|---------|----------|
-| AAPL | Apple Inc. | Technology | ✅ | ✅ | ✅ | ✅ |
-| NVDA | NVIDIA Corporation | Semiconductors | ✅ | ✅ | ✅ | ✅ |
-| MSFT | Microsoft Corporation | Technology | ✅ | ✅ | ✅ | ✅ |
-| GOOGL | Alphabet Inc. | Technology | ✅ | ✅ | ✅ | ✅ |
-| AMZN | Amazon.com Inc. | E-commerce | ✅ | ✅ | ✅ | ✅ |
-| META | Meta Platforms Inc. | Social Media | ✅ | ✅ | ✅ | ✅ |
-| TSLA | Tesla Inc. | Automotive | ✅ | ✅ | ✅ | ✅ |
-| JPM | JPMorgan Chase & Co. | Banking | ✅ | ✅ | ✅ | ✅ |
-| JNJ | Johnson & Johnson | Healthcare | ✅ | ✅ | ✅ | ✅ |
-| WMT | Walmart Inc. | Retail | ✅ | ✅ | ✅ | ✅ |
-
-**Total Coverage**: 40/40 earnings calls (100%)
+**Coverage**: 10 companies x 4 quarters (Q1-Q4 2025) = 40 data points
 
 ---
 
-## 🏗️ System Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    React Frontend                        │
-│  • Dashboard with charts                                │
-│  • Company detail views                                 │
-│  • Claims explorer                                      │
-│  • Real-time verification display                       │
-└────────────────┬────────────────────────────────────────┘
-                 │ HTTP/REST API
-                 ▼
-┌─────────────────────────────────────────────────────────┐
-│           Vercel Serverless API (Node.js)                │
-│  • API Routes (companies, verification, openapi)        │
-│  • SEC EDGAR fetch + metric calculations                │
-│  • Deterministic verification logic                     │
-└────────────────┬────────────────────────────────────────┘
-                 │ HTTPS
-                 ▼
-┌─────────────────────────────────────────────────────────┐
-│                    SEC EDGAR API                         │
-│  • Official 10-Q/10-K filings                          │
-│  • XBRL structured data                                 │
-│  • Free, no authentication required                     │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                  React Frontend (Vite)                     │
+│  Dashboard · Company Detail · Claims Explorer · About     │
+└──────────────────┬───────────────────────────────────────┘
+                   │  /api/* (Vite proxy → localhost:3000)
+                   ▼
+┌──────────────────────────────────────────────────────────┐
+│              Fastify API Server (Node.js)                  │
+│  Routes: companies, verification, discrepancies, health   │
+│  Services: SECDataService, TranscriptService              │
+│  Cache: AggregateCache + FileCache (disk-backed)          │
+└──────────────────┬───────────────────────────────────────┘
+                   │  HTTPS
+                   ▼
+┌──────────────────────────────────────────────────────────┐
+│                   SEC EDGAR API                            │
+│  XBRL structured data · 10-Q/10-K filings · Free/public  │
+└──────────────────────────────────────────────────────────┘
 ```
+
+### Cache System
+
+- **`init.js`** — synchronous startup, loads existing `.cache/` files from disk
+- **`CacheRefresher`** — spawns `worker.js` as child process if cache is empty/expired; periodic 30-min checks
+- **`worker.js`** — separate process that fetches SEC API data + scrapes transcripts, writes to `.cache/aggregate.json` and `.cache/companies.json`
+- **Zero API calls during request handling** — all endpoints read from in-memory cache
 
 ---
 
-## 📦 Project Structure
+## Project Structure
 
 ```
 earnings-call-verifier/
-├── api/                          # Vercel serverless API (source of truth)
-│   ├── health.js
-│   ├── openapi.js
-│   ├── companies/
+├── api/
+│   ├── server.js                  # Fastify server entry point
+│   ├── worker.js                  # Background cache worker
+│   ├── _lib/
+│   │   ├── fastifyApp.js          # Route definitions
+│   │   ├── init.js                # Synchronous cache bootstrap
+│   │   ├── cache/
+│   │   │   ├── AggregateCache.js  # In-memory + disk cache
+│   │   │   ├── CacheRefresher.js  # Worker orchestrator
+│   │   │   └── FileCache.js       # Per-company file cache
+│   │   ├── constants/
+│   │   │   ├── companies.js       # 10 company tickers/CIKs
+│   │   │   └── quarters.js        # Static fallback data
+│   │   ├── services/
+│   │   │   ├── SECDataService.js  # SEC EDGAR XBRL extraction
+│   │   │   └── TranscriptService.js
+│   │   └── controllers/
+│   ├── companies/                 # Vercel-compatible route handlers
 │   ├── verification/
-│   └── _lib/                      # SEC + verification logic
+│   └── transcripts/
 │
-├── ui/                           # Frontend React application
+├── ui/
 │   ├── src/
-│   │   ├── App.jsx              # Main application
-│   │   ├── pages/               # Page components
-│   │   │   ├── Dashboard.jsx    # Overview with charts
-│   │   │   ├── CompanyDetail.jsx # Company analysis
-│   │   │   ├── ClaimExplorer.jsx # Search & filter
-│   │   │   └── About.jsx        # Project info
-│   │   ├── data/                # Sample data
+│   │   ├── App.jsx                # Main app with navigation
+│   │   ├── main.jsx               # Entry point with CompaniesProvider
+│   │   ├── context/
+│   │   │   └── CompaniesContext.jsx
+│   │   ├── pages/
+│   │   │   ├── Dashboard.jsx      # Stats, discrepancies, companies list
+│   │   │   ├── CompanyDetail.jsx  # Per-company financials & metrics
+│   │   │   ├── ClaimExplorer.jsx  # Two-tab verify + search
+│   │   │   └── About.jsx
 │   │   ├── utils/
-│   │   │   └── apiClient.js     # Backend API client
-│   │   └── index.css            # Styles
+│   │   │   └── apiClient.js       # API client (all endpoints)
+│   │   ├── data/                   # Mock/sample data fallbacks
+│   │   └── index.css               # Tailwind styles
 │   ├── package.json
-│   └── vite.config.js
+│   └── vite.config.js              # Dev server + proxy config
 │
-├── data/
-│   ├── transcript_manifest.json # 10x4 transcript URLs with provenance
-│   └── sec_financials.json      # Cached SEC data for offline analysis
-│
-├── vercel.json                  # Vercel dev/build config
-└── README.md                    # This file
+├── scripts/                        # Prefetch & utility scripts
+├── vercel.json                     # Vercel deployment config
+├── package.json                    # Root: dependencies + npm scripts
+└── README.md
 ```
-
-### Analysis Results (Static Demo Dataset)
-
-**140 total claims analyzed** across 10 companies:
-
-| Metric | Count | Percentage |
-|--------|-------|------------|
-| ✅ Accurate | 95 | 77.2% |
-| ⚠️ Discrepant | 28 | 22.8% |
-| ❓ Unverifiable | 17 | - |
-
-### Top Discrepancies Found
-
-| Company | Executive | Claim | SEC Filing | Discrepancy | Severity |
-|---------|-----------|-------|------------|-------------|----------|
-| **NVIDIA** | Colette Kress (CFO) | Net Income: $14.1B | **$13.32B** | **+5.86%** | 🔴 HIGH |
-| **Apple** | Luca Maestri (CFO) | Operating Income: $31.5B | **$29.95B** | **+5.18%** | 🟠 MODERATE |
-| **NVIDIA** | Jensen Huang (CEO) | Gross Margin: 76.2% | **74.01%** | **+2.19pts** | 🟠 MODERATE |
-| **Tesla** | Elon Musk (CEO) | Auto Margin: 21.3% | **19.15%** | **+2.15pts** | 🟠 MODERATE |
-| **Meta** | Mark Zuckerberg (CEO) | Reality Labs Revenue: $0.3B | **$0.34B** | **-11.76%** | 🔴 HIGH |
 
 ---
 
-## 📡 API Endpoints
+## API Endpoints
 
-### Health Check
+### Health
 ```
-GET /api/health
+GET /api/health                              # Server status + cache info
 ```
 
 ### Companies
 ```
-GET  /api/companies                     # List all companies
-GET  /api/companies/{ticker}            # Get company financials
-GET  /api/companies/{ticker}/quarters   # Get available quarters
-GET  /api/companies/{ticker}/metrics/{quarter}  # Get calculated metrics
+GET /api/companies                           # All companies with latest data
+GET /api/companies/{ticker}                  # Company detail + quarters
+GET /api/companies/{ticker}/quarters         # Available quarters
+GET /api/companies/{ticker}/metrics/{quarter} # Calculated metrics for quarter
+```
+
+### Discrepancies
+```
+GET /api/discrepancies/top?limit=5           # Top N discrepancies from cached data
 ```
 
 ### Verification
 ```
-POST /api/verification/verify           # Verify claims against SEC data
+POST /api/verification/verify                # Verify claims JSON against SEC data
 ```
 
-### OpenAPI (Claude Skill)
+### Transcripts
 ```
-GET /api/openapi                        # OpenAPI YAML for Skill registration
+GET /api/transcripts/sources                 # Full transcript manifest
+GET /api/transcripts/sources/{ticker}        # Company transcript sources
+```
+
+### OpenAPI
+```
+GET /api/openapi                             # OpenAPI spec for Claude Skill
 ```
 
 ---
 
-## 🔄 End-to-End Pipeline
+## End-to-End Workflow
 
-### Step 1: Claim Extraction (Claude Skill)
+### 1. Extract Claims (Claude Skill)
 
-Use the deployed Claude Skill to extract quantitative claims:
+Register the Claude Skill using the `/api/openapi` endpoint, then paste an earnings call transcript. Claude extracts structured claims:
 
-1. Register skill using `/api/openapi` endpoint
-2. Paste transcript text into Claude
-3. Claude extracts structured claims with speaker attribution
-4. Export JSON array of claims
-
-**Sample extracted claim**:
 ```json
 {
   "speaker": "Tim Cook",
@@ -281,55 +221,57 @@ Use the deployed Claude Skill to extract quantitative claims:
 }
 ```
 
-### Step 2: Verification & Analysis
+### 2. Verify Claims
 
-View results in the web UI:
-- **Static Mode**: Pre-verified 140 claims across 10 companies
-- **Live Mode**: Interactive verification with real-time SEC data
-- **Claims Explorer**: Search, filter, and analyze by executive/metric
-- **Executive Analysis**: Accuracy scores per speaker
+In the **Claims Explorer → Verify tab**, select a company and quarter, paste the claims JSON, and click Verify. The API cross-references each claim against SEC EDGAR XBRL data.
 
----
+### 3. Search & Analyze
 
-## 🔍 Key Findings
+Switch to the **Search tab** to filter results by status (accurate/discrepant/unverifiable), severity, speaker, or metric. The Dashboard shows top discrepancies across all companies.
 
 ---
 
-## 📄 License
+## Financial Metrics Extracted
 
-MIT License - See LICENSE file
+From SEC EDGAR XBRL filings (multiple concept name variants tried per metric):
 
----
-
-## 👤 Author
-
-**Time to Build**: ~12 hours
-- 4 hours: Backend (Node.js + SEC verification)
-- 6 hours: Frontend (React application)
-- 2 hours: Documentation and polish
-
----
-
-## 🙏 Acknowledgments
-
-- **SEC EDGAR API**: Free, official financial data
-- **Tailwind CSS**: Rapid UI development
-- **React**: Component architecture
-- **Recharts**: Beautiful visualizations
-- **Kip Engineering**: Thoughtful assignment design
+| Metric | XBRL Concepts |
+|--------|--------------|
+| Revenue | `Revenues`, `RevenueFromContractWithCustomerExcludingAssessedTax` |
+| Net Income | `NetIncomeLoss` |
+| Gross Profit | `GrossProfit` |
+| Operating Income | `OperatingIncomeLoss` |
+| Cost of Revenue | `CostOfRevenue`, `CostOfGoodsAndServicesSold`, `CostOfGoodsSold` |
+| Operating Expenses | `OperatingExpenses`, `OperatingCostsAndExpenses`, `CostsAndExpenses` |
+| EPS | `EarningsPerShareDiluted`, `EarningsPerShareBasic` |
 
 ---
 
-## 📞 Questions?
+## npm Scripts
 
-This demonstrates:
-- ✅ Full-stack development (React + Node.js)
-- ✅ Real data integration (SEC EDGAR)
-- ✅ Claude Skill integration for LLM claim extraction
-- ✅ Production-ready code (clean, documented, deployed)
-- ✅ Data visualization (charts, analytics)
-- ✅ Modern UX (responsive, interactive)
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start Vite UI dev server (port 5173) |
+| `npm run api` | Start Fastify API server (port 3000) |
+| `npm run build` | Build UI for production |
+| `npm run worker` | Run cache worker (one-shot) |
+| `npm run worker:watch` | Run cache worker (continuous, 30-min interval) |
+| `npm run prefetch` | Prefetch cache on startup |
 
-**Next Steps**: Scale to 50+ companies, integrate real transcript APIs, deploy as SaaS
+---
+
+## Tech Stack
+
+- **Frontend**: React 18, Vite, Tailwind CSS, Lucide React icons
+- **Backend**: Fastify (Node.js), SEC EDGAR XBRL API
+- **Caching**: Multi-layer (in-memory + disk), background worker process
+- **Scraping**: Cheerio (transcript extraction from Motley Fool, Yahoo Finance, Investing.com)
+- **Deployment**: Vercel-compatible (serverless functions + static frontend)
+
+---
+
+## License
+
+MIT License
 
 ---
