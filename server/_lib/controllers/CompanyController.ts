@@ -38,7 +38,7 @@ export class CompanyController {
 
   async getCompaniesList() {
     // Return list of supported companies
-    return [
+    const companies = [
       { ticker: 'AAPL', name: 'Apple Inc.', cik: '0000320193' },
       { ticker: 'NVDA', name: 'NVIDIA Corporation', cik: '0001045810' },
       { ticker: 'MSFT', name: 'Microsoft Corporation', cik: '0000789019' },
@@ -50,6 +50,11 @@ export class CompanyController {
       { ticker: 'JNJ', name: 'Johnson & Johnson', cik: '0000200406' },
       { ticker: 'WMT', name: 'Walmart Inc.', cik: '0000104169' }
     ];
+    
+    return {
+      companies,
+      total: companies.length
+    };
   }
 
   private getCIKForTicker(ticker: string): string {
