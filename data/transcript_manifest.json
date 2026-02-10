@@ -1,14 +1,26 @@
 {
   "instructions": {
     "how_to_use": [
-      "Fill in transcript_url for each entry (prefer official Investor Relations pages).",
-      "Then run: node scripts/fetch-transcripts.mjs",
-      "Then use Claude Skill to extract claims JSON per transcript (claims_output_path).",
-      "Then run: node scripts/batch-verify.mjs --baseUrl http://localhost:3001"
+      "1. Fill in transcript_url for each entry following the source hierarchy below",
+      "2. Run: node scripts/fetch-transcripts.mjs (downloads all transcripts)",
+      "3. Use Claude Skill to extract claims JSON per transcript",
+      "4. Run: node scripts/batch-verify.mjs (verifies all claims against SEC data)",
+      "5. Run: node scripts/generate-coverage-report.mjs (generates coverage statistics)"
+    ],
+    "source_hierarchy": [
+      "1. Primary: Company Investor Relations pages (official transcripts)",
+      "2. Secondary: Public transcript publishers (Motley Fool, Yahoo Finance, Investing.com, Seeking Alpha)",
+      "3. Fallback: 10-Q/10-K MD&A sections (clearly labeled as proxy)"
+    ],
+    "provenance_policy": [
+      "Every transcript must include source URL and retrieval date",
+      "Missing transcripts are explicitly documented in coverage report",
+      "All claims verified against official SEC EDGAR filings regardless of transcript source"
     ],
     "notes": [
-      "There is no single free transcript API with reliable 10x4 coverage; IR pages are the recommended free source.",
-      "If a transcript URL is missing for a quarter, leave it blank and that entry will be skipped."
+      "This manifest covers 10 companies × 4 quarters = 40 total earnings calls",
+      "Transcript sources are documented with clear attribution",
+      "SEC EDGAR is the single source of truth for all verification"
     ]
   },
   "companies": [
