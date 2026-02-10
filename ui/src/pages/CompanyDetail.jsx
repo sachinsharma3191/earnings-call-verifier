@@ -18,6 +18,7 @@ function CompanyDetail({ company, onBack }) {
   const meta = getMeta(ticker);
   const [quartersData, setQuartersData] = useState([]);
   const [selectedQuarter, setSelectedQuarter] = useState('');
+  const [hoveredQuarter, setHoveredQuarter] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,11 +41,13 @@ function CompanyDetail({ company, onBack }) {
   }, [ticker]);
 
   const quarters = quartersData.map(q => q.quarter);
-  const currentQ = quartersData.find(q => q.quarter === selectedQuarter);
-  const qIdx = quarters.indexOf(selectedQuarter);
+  const activeQuarter = hoveredQuarter || selectedQuarter;
+  const currentQ = quartersData.find(q => q.quarter === activeQuarter);
+  const qIdx = quarters.indexOf(activeQuarter);
   const prevQ = qIdx >= 0 && qIdx < quarters.length - 1 ? quartersData[qIdx + 1] : null;
   const currentFin = currentQ?.financials || {};
   const prevFin = prevQ?.financials || {};
+  const isHovering = hoveredQuarter && hoveredQuarter !== selectedQuarter;
 
   const fmtVal = (key, val) => {
     if (val == null || val === 0) return '—';
@@ -81,7 +84,8 @@ function CompanyDetail({ company, onBack }) {
             <div className="p-4 border-b border-gray-700 flex items-center justify-between">
               <span className="text-sm font-bold flex items-center gap-2">
                 <Database className="h-4 w-4 text-cyan-400" />
-                Financial Metrics — {selectedQuarter}
+                Financial Metrics — {activeQuarter}
+                {isHovering && <span className="text-[10px] text-yellow-400 font-normal ml-1">(preview)</span>}
               </span>
               {currentQ?.dataSource && (
                 <span className="text-[11px] text-gray-500">Source: SEC {currentQ.dataSource === 'sec_edgar' ? '10-Q filing' : 'static fallback'}</span>
@@ -110,18 +114,30 @@ function CompanyDetail({ company, onBack }) {
           </div>
 
           {/* All Quarters Overview Table */}
-          <div className="card overflow-hidden">
-            <div className="p-4 border-b border-gray-700">
+          <div className="card overflow-hidden" onMouseLeave={() => setHoveredQuarter(null)}>
+            <div className="p-4 border-b border-gray-700 flex items-center justify-between">
               <h4 className="text-sm font-bold">All Quarters Overview</h4>
+              <span className="text-[10px] text-gray-600">Hover a column to preview · Click to select</span>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-gray-700">
                     <th className="px-3 py-2.5 text-left text-gray-500 font-semibold">Metric</th>
-                    {quarters.map((q) => (
-                      <th key={q} className={`px-3 py-2.5 text-right font-semibold ${q === selectedQuarter ? 'text-cyan-400' : 'text-gray-500'}`}>{q}</th>
-                    ))}
+                    {quarters.map((q) => {
+                      const isSelected = q === selectedQuarter;
+                      const isHovered = q === hoveredQuarter;
+                      return (
+                        <th key={q}
+                          onMouseEnter={() => setHoveredQuarter(q)}
+                          onClick={() => setSelectedQuarter(q)}
+                          className={`px-3 py-2.5 text-right font-semibold cursor-pointer transition-colors ${
+                            isSelected ? 'text-cyan-400' : isHovered ? 'text-yellow-400' : 'text-gray-500'
+                          }`}>
+                          {q} {isSelected && <span className="text-[9px] ml-0.5">●</span>}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
@@ -130,8 +146,15 @@ function CompanyDetail({ company, onBack }) {
                       <td className="px-3 py-2.5 text-gray-400">{m.label}</td>
                       {quartersData.map((qd) => {
                         const v = qd.financials?.[m.key];
+                        const isSelected = qd.quarter === selectedQuarter;
+                        const isHovered = qd.quarter === hoveredQuarter;
                         return (
-                          <td key={qd.quarter} className={`px-3 py-2.5 text-right tabular-nums ${qd.quarter === selectedQuarter ? 'text-white font-semibold' : 'text-gray-300'}`}>
+                          <td key={qd.quarter}
+                            onMouseEnter={() => setHoveredQuarter(qd.quarter)}
+                            onClick={() => setSelectedQuarter(qd.quarter)}
+                            className={`px-3 py-2.5 text-right tabular-nums cursor-pointer transition-colors ${
+                              isSelected ? 'text-white font-semibold' : isHovered ? 'text-yellow-300 font-semibold bg-yellow-500/5' : 'text-gray-300'
+                            }`}>
                             {fmtVal(m.key, v)}
                           </td>
                         );
