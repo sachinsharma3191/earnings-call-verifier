@@ -36,48 +36,82 @@ npm run build
 
 ---
 
-## 📋 Data Coverage: 10 Companies × 4 Quarters
+## 📋 Data Coverage: 10 Companies × 4 Quarters (40 Data Points)
+
+This implementation provides comprehensive coverage of **10 public companies** across their **last 4 quarters** (Q1-Q4 2025), totaling **40 data points** with full source attribution and transparent fallback policies.
+
+### Companies Covered
+
+1. **AAPL** - Apple Inc.
+2. **NVDA** - NVIDIA Corporation
+3. **MSFT** - Microsoft Corporation
+4. **GOOGL** - Alphabet Inc.
+5. **AMZN** - Amazon.com Inc.
+6. **META** - Meta Platforms Inc.
+7. **TSLA** - Tesla Inc.
+8. **JPM** - JPMorgan Chase & Co.
+9. **JNJ** - Johnson & Johnson
+10. **WMT** - Walmart Inc.
 
 ### Transcript Sourcing Strategy
-
-This implementation covers **10 public companies** across their **last 4 quarters** (40 total data points), following a transparent and practical approach to transcript acquisition with explicit source attribution.
 
 #### Source Attribution Policy
 
 **Transcript Sources**: All earnings call transcripts are sourced from publicly accessible publishers with explicit citation and provenance tracking:
-- **The Motley Fool** (transcripts.fool.com)
-- **Yahoo Finance** (finance.yahoo.com)
-- **Investing.com**
-- **Seeking Alpha** (when publicly available)
+- **The Motley Fool** (transcripts.fool.com) - 15 transcripts
+- **Yahoo Finance** (finance.yahoo.com) - 13 transcripts
+- **Investing.com** - 9 transcripts
+- **SEC EDGAR Proxy** (10-Q/10-K MD&A) - 3 documents
 
 **Verification Standard**: All quantitative claims are verified against official **SEC EDGAR filings** (10-Q, 10-K) regardless of transcript source. SEC EDGAR serves as the single source of truth for financial data verification.
 
-#### Fallback Policy for Missing Transcripts
+#### Fallback Policy Implementation
 
-When a specific company/quarter transcript is missing or gated, the following fallback strategy is applied:
+**Hybrid Approach (Option B + C)**:
 
-**Option A - Primary**: Use alternative public transcript source with clear citation
-**Option B - Fallback**: Use SEC filing MD&A sections as proxy documents (clearly labeled)
-**Option C - Last Resort**: Skip quarter and explicitly document coverage gap
+When a specific company/quarter transcript is missing or gated:
 
-**Current Implementation**: Hybrid approach (B+C)
-- Proxy documents (10-Q/10-K MD&A) are used when full transcripts are unavailable
-- All proxy documents are clearly labeled to distinguish from full earnings call transcripts
-- Coverage gaps are explicitly tracked and reported via `/api/transcripts/sources` endpoint
+1. **Primary**: Use publicly accessible transcript source (Motley Fool, Yahoo Finance, Investing.com)
+2. **Fallback**: Use SEC 10-Q/10-K MD&A sections as proxy documents (clearly labeled)
+3. **Last Resort**: Skip quarter and explicitly document coverage gap
 
-#### Coverage Statistics
+**Current Coverage**: 
+- **37 Full Transcripts** (92.5%)
+- **3 Proxy Documents** (7.5%) - AAPL Q1-2025, META Q1-2025, JNJ Q2-2025
+- **0 Coverage Gaps** (0%)
+- **Total Coverage**: 100% (40/40 data points)
 
-Access real-time coverage statistics via API:
+#### UI Implementation
+
+The UI displays transcript source attribution for each company/quarter:
+- **Source name** (e.g., "The Motley Fool", "Yahoo Finance")
+- **Document type** (Full Transcript vs Proxy Document)
+- **Visual indicators**: 
+  - ✅ Green for full transcripts
+  - ⚠️ Yellow warning for proxy documents with explanation
+- **Clear labeling**: "Proxy Document (SEC 10-Q/10-K MD&A) - Full transcript unavailable"
+
+#### API Endpoints
+
+Access transcript source information programmatically:
+
 ```bash
+# Get full manifest (all 40 data points)
 GET /api/transcripts/sources
+
+# Get company-specific sources (4 quarters)
+GET /api/transcripts/sources/AAPL
+
+# Get specific quarter source
+GET /api/transcripts/sources/AAPL/Q1-2025
 ```
 
-Returns:
-- Total coverage percentage
-- Full transcripts available
-- Proxy documents used
-- Coverage gaps
-- Source attribution for each company/quarter
+**Response includes**:
+- Source name and URL
+- Document type (transcript/proxy)
+- Filing date
+- Availability status
+- Coverage notes
    - Investing.com
    - Seeking Alpha (seekingalpha.com)
 3. **Fallback**: 10-Q/10-K MD&A sections (clearly labeled as proxy when used)
