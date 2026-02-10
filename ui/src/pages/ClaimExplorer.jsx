@@ -566,8 +566,8 @@ function ClaimExplorer({ companies }) {
                   <div className={`font-semibold text-lg ${
                     claim.status === 'discrepant' ? 'text-red-400' : 'text-gray-300'
                   }`}>
-                    {claim.difference > 0 ? '+' : ''}{claim.difference.toFixed(2)}{claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? 'pts' : ''}
-                    <span className="text-xs ml-1">({claim.percentDiff.toFixed(2)}%)</span>
+                    {claim.difference != null ? `${claim.difference > 0 ? '+' : ''}${claim.difference.toFixed(2)}${claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? 'pts' : ''}` : 'N/A'}
+                    {claim.percentDiff != null && <span className="text-xs ml-1">({claim.percentDiff.toFixed(2)}%)</span>}
                   </div>
                 </div>
               </div>

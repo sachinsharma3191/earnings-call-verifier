@@ -127,38 +127,74 @@ async function buildApp() {
         return { error: "Missing required fields: ticker, quarter, claims[]" };
       }
 
-      const cik = COMPANY_CIKS[ticker.toUpperCase()];
+      const upperTicker = ticker.toUpperCase();
+      const cik = COMPANY_CIKS[upperTicker];
       if (!cik) {
         reply.code(400);
         return { error: `Company ${ticker} not found` };
       }
+
+      // Try cached aggregated data first
+      const { fileCache } = await import('./cache/FileCache.js');
+      let cachedData = fileCache.get(upperTicker);
       
-      const financials = await secService.getCompanyFinancials(cik);
-      if (!financials) {
-        reply.code(400);
-        return { error: `Financial data not available for ${ticker}` };
+      // Find quarter in cached data (new aggregated format)
+      let metrics = null;
+      let quarterInfo = null;
+      
+      if (cachedData?.quarters) {
+        const qData = cachedData.quarters.find(q => q.quarter === quarter);
+        if (qData?.financials) {
+          metrics = {
+            revenue_billions: qData.financials.Revenues,
+            net_income_billions: qData.financials.NetIncome,
+            gross_profit_billions: qData.financials.GrossProfit,
+            operating_income_billions: qData.financials.OperatingIncome,
+            gross_margin_pct: qData.financials.Revenues > 0 ? (qData.financials.GrossProfit / qData.financials.Revenues) * 100 : null,
+            operating_margin_pct: qData.financials.Revenues > 0 ? (qData.financials.OperatingIncome / qData.financials.Revenues) * 100 : null,
+            net_margin_pct: qData.financials.Revenues > 0 ? (qData.financials.NetIncome / qData.financials.Revenues) * 100 : null
+          };
+          quarterInfo = { end_date: qData.endDate, filed: qData.filed, dataSource: qData.dataSource };
+        }
+      }
+      
+      // Fallback: try SEC directly with old format
+      if (!metrics) {
+        try {
+          const financials = await secService.getCompanyFinancials(cik);
+          const quarterData = findQuarterData(financials.quarters, quarter);
+          if (quarterData) {
+            metrics = {
+              revenue_billions: quarterData.Revenues,
+              net_income_billions: quarterData.NetIncome,
+              gross_profit_billions: quarterData.GrossProfit,
+              operating_income_billions: quarterData.OperatingIncome,
+              gross_margin_pct: quarterData.Revenues > 0 ? (quarterData.GrossProfit / quarterData.Revenues) * 100 : null,
+              operating_margin_pct: quarterData.Revenues > 0 ? (quarterData.OperatingIncome / quarterData.Revenues) * 100 : null,
+              net_margin_pct: quarterData.Revenues > 0 ? (quarterData.NetIncome / quarterData.Revenues) * 100 : null
+            };
+            quarterInfo = { end_date: quarterData.end_date, filed: quarterData.filed, form: quarterData.form };
+          }
+        } catch (e) {
+          // SEC fallback failed, continue with what we have
+        }
       }
 
-      const quarterData = findQuarterData(financials.quarters, quarter);
-      if (!quarterData) {
+      if (!metrics) {
         reply.code(400);
-        return { error: `Quarter ${quarter} not found for ${ticker}` };
+        return { error: `No financial data available for ${upperTicker} ${quarter}` };
       }
 
-      const verifiedClaims = claims.map((claim) => verifySingleClaim(claim, quarterData));
+      const verifiedClaims = claims.map((claim) => verifySingleClaim(claim, metrics));
       const summary = calculateSummary(verifiedClaims);
 
       return {
-        ticker: ticker.toUpperCase(),
+        ticker: upperTicker,
         quarter,
         total_claims: verifiedClaims.length,
         summary,
         claims: verifiedClaims,
-        sec_data: {
-          end_date: quarterData.end_date,
-          filed: quarterData.filed,
-          form: quarterData.form || '10-Q'
-        }
+        sec_data: quarterInfo || {}
       };
     } catch (error) {
       req.log.error('Verification error:', error);
