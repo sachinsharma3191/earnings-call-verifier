@@ -92,6 +92,7 @@ function ClaimExplorer({ companies }) {
     if (!selectedTicker && companies?.length) setSelectedTicker(companies[0].ticker);
   }, [companies]);
 
+  const [quartersData, setQuartersData] = useState([]);
   const [transcriptSource, setTranscriptSource] = useState(null);
 
   useEffect(() => {
@@ -100,10 +101,17 @@ function ClaimExplorer({ companies }) {
       if (!selectedTicker) return;
       try {
         const resp = await apiClient.getCompanyQuarters(selectedTicker);
-        const q = (resp?.quarters || []).map((x) => x.quarter);
+        const quarters = resp?.quarters || [];
         if (!cancelled) {
+          setQuartersData(quarters);
+          const q = quarters.map((x) => x.quarter);
           setAvailableQuarters(q);
           setSelectedQuarter((prev) => prev || q?.[0] || '');
+          
+          // Set transcript source for first quarter
+          if (quarters.length > 0 && quarters[0].transcriptSource) {
+            setTranscriptSource(quarters[0].transcriptSource);
+          }
         }
       } catch (e) {
         // Fallback to mock data when API fails
@@ -111,6 +119,10 @@ function ClaimExplorer({ companies }) {
           const mockQuarters = ['Q4 2025', 'Q3 2025', 'Q2 2025', 'Q1 2025'];
           setAvailableQuarters(mockQuarters);
           setSelectedQuarter((prev) => prev || mockQuarters[0] || '');
+          
+          // Fallback to mock transcript source
+          const mockSource = getMockTranscript(selectedTicker, mockQuarters[0]);
+          setTranscriptSource(mockSource);
         }
       }
     }
@@ -120,29 +132,19 @@ function ClaimExplorer({ companies }) {
     };
   }, [selectedTicker]);
 
-  // Load transcript source when ticker/quarter changes
+  // Update transcript source when quarter changes
   useEffect(() => {
-    let cancelled = false;
-    async function loadTranscriptSource() {
-      if (!selectedTicker || !selectedQuarter) return;
-      try {
-        const quarterKey = selectedQuarter.replace(' ', '-');
-        const resp = await fetch(`/api/transcripts/sources/${selectedTicker}/${quarterKey}`);
-        if (resp.ok) {
-          const data = await resp.json();
-          if (!cancelled) setTranscriptSource(data.source);
-        }
-      } catch (e) {
-        // Fallback to mock transcript source
-        const mockSource = getMockTranscript(selectedTicker, selectedQuarter);
-        if (!cancelled) setTranscriptSource(mockSource);
-      }
+    if (!selectedQuarter || !quartersData.length) return;
+    
+    const quarterData = quartersData.find(q => q.quarter === selectedQuarter);
+    if (quarterData?.transcriptSource) {
+      setTranscriptSource(quarterData.transcriptSource);
+    } else {
+      // Fallback to mock
+      const mockSource = getMockTranscript(selectedTicker, selectedQuarter);
+      setTranscriptSource(mockSource);
     }
-    loadTranscriptSource();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedTicker, selectedQuarter]);
+  }, [selectedQuarter, quartersData, selectedTicker]);
 
   const verifiedClaims = useMemo(() => {
     const claims = verificationResult?.claims || [];

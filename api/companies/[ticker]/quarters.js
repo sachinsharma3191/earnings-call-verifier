@@ -1,4 +1,5 @@
 import { SECDataService } from '../../_lib/services/SECDataService.js';
+import { getTranscriptSource } from '../../_lib/data/transcriptSources.js';
 
 const TICKER_TO_CIK = {
   'AAPL': '0000320193',
@@ -27,7 +28,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing ticker parameter' });
   }
 
-  const cik = TICKER_TO_CIK[ticker];
+  const cik = TICKER_TO_CIK[ticker.toUpperCase()];
   if (!cik) {
     return res.status(404).json({ error: 'Company not found' });
   }
@@ -36,21 +37,52 @@ export default async function handler(req, res) {
     const secService = new SECDataService();
     const quarters = await secService.getQuarterlyData(cik);
     
-    return res.status(200).json({
-      ticker,
-      quarters: quarters.slice(0, 4).map(q => ({
-        quarter: `${q.fiscal_period} ${q.fiscal_year}`,
+    // Add transcript source attribution to each quarter
+    const quartersWithSources = quarters.slice(0, 4).map(q => {
+      const quarterStr = `${q.fiscal_period} ${q.fiscal_year}`;
+      const quarterKey = quarterStr.replace(' ', '-');
+      const transcriptSource = getTranscriptSource(ticker.toUpperCase(), quarterKey);
+      
+      return {
+        quarter: quarterStr,
         endDate: q.end_date,
-        filed: q.filed
-      })),
+        filed: q.filed,
+        transcriptSource: transcriptSource || {
+          available: false,
+          source: 'Not Available',
+          type: 'missing',
+          note: 'Transcript source not configured'
+        }
+      };
+    });
+    
+    return res.status(200).json({
+      ticker: ticker.toUpperCase(),
+      quarters: quartersWithSources,
       source: 'sec_edgar'
     });
   } catch (error) {
     console.warn(`SEC API failed for ${ticker}, using static data:`, error);
     
+    // Add transcript sources to static quarters too
+    const quartersWithSources = STATIC_QUARTERS.map(q => {
+      const quarterKey = q.quarter.replace(' ', '-');
+      const transcriptSource = getTranscriptSource(ticker.toUpperCase(), quarterKey);
+      
+      return {
+        ...q,
+        transcriptSource: transcriptSource || {
+          available: false,
+          source: 'Not Available',
+          type: 'missing',
+          note: 'Transcript source not configured'
+        }
+      };
+    });
+    
     return res.status(200).json({
-      ticker,
-      quarters: STATIC_QUARTERS,
+      ticker: ticker.toUpperCase(),
+      quarters: quartersWithSources,
       source: 'static_fallback'
     });
   }

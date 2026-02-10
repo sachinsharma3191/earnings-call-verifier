@@ -1,5 +1,6 @@
 import { SECDataService } from '../_lib/services/SECDataService.js';
 import { fileCache } from '../_lib/cache/FileCache.js';
+import { getTranscriptSource } from '../_lib/data/transcriptSources.js';
 
 const TICKER_TO_CIK = {
   'AAPL': '0000320193',
@@ -67,25 +68,68 @@ export default async function handler(req, res) {
       const currentYear = new Date().getFullYear();
       
       if (currentYear - latestYear > 1 || data.quarters.length === 0) {
-        // SEC data is too old, use mock data
+        // SEC data is too old, use mock data with transcript sources
+        const quartersWithSources = MOCK_QUARTERS.map(q => {
+          const quarterKey = `${q.fiscal_period}-${q.fiscal_year}`;
+          const transcriptSource = getTranscriptSource(ticker.toUpperCase(), quarterKey);
+          return {
+            ...q,
+            transcriptSource: transcriptSource || {
+              available: false,
+              source: 'Not Available',
+              type: 'missing'
+            }
+          };
+        });
+        
         return res.status(200).json({
           ticker: ticker,
           company_name: COMPANY_NAMES[ticker] || ticker,
           cik: cik,
-          quarters: MOCK_QUARTERS,
+          quarters: quartersWithSources,
           data_source: 'mock_fallback',
           last_updated: new Date().toISOString().slice(0, 10)
         });
       }
       
-      return res.status(200).json(data);
+      // Add transcript sources to real data
+      const quartersWithSources = data.quarters.map(q => {
+        const quarterKey = `${q.fiscal_period}-${q.fiscal_year}`;
+        const transcriptSource = getTranscriptSource(ticker.toUpperCase(), quarterKey);
+        return {
+          ...q,
+          transcriptSource: transcriptSource || {
+            available: false,
+            source: 'Not Available',
+            type: 'missing'
+          }
+        };
+      });
+      
+      return res.status(200).json({
+        ...data,
+        quarters: quartersWithSources
+      });
     } catch (secError) {
-      // SEC API failed, return mock data
+      // SEC API failed, return mock data with transcript sources
+      const quartersWithSources = MOCK_QUARTERS.map(q => {
+        const quarterKey = `${q.fiscal_period}-${q.fiscal_year}`;
+        const transcriptSource = getTranscriptSource(ticker.toUpperCase(), quarterKey);
+        return {
+          ...q,
+          transcriptSource: transcriptSource || {
+            available: false,
+            source: 'Not Available',
+            type: 'missing'
+          }
+        };
+      });
+      
       return res.status(200).json({
         ticker: ticker,
         company_name: COMPANY_NAMES[ticker] || ticker,
         cik: cik,
-        quarters: MOCK_QUARTERS,
+        quarters: quartersWithSources,
         data_source: 'mock_fallback',
         last_updated: new Date().toISOString().slice(0, 10)
       });
