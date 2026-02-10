@@ -50,3 +50,4 @@ venv/
 ENV/
 .vercel
 .env*.local
+.cache/

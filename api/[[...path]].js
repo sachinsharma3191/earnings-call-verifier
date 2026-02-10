@@ -1,5 +1,5 @@
-import { handleWithFastify } from "./_lib/fastifyHandler.js";
-import { initializeCache } from "./_lib/init.js";
+import { handleWithFastify } from "../lib/fastifyHandler.js";
+import { initializeCache } from "../lib/init.js";
 
 // Initialize cache on first cold start
 initializeCache();

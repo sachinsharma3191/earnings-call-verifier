@@ -1,5 +1,5 @@
 
-import { SECDataService } from '../api/_lib/services/SECDataService.js';
+import { SECDataService } from '../lib/services/SECDataService.js';
 
 async function debugSEC() {
     const service = new SECDataService();
