@@ -28,6 +28,12 @@ This starts a single local server that serves:
 npm run build
 ```
 
+### Option 3: Deploy (Vercel)
+
+1. Push to GitHub
+2. Import the repo into Vercel
+3. Deploy
+
 ---
 
 ## 🏗️ System Architecture
@@ -84,7 +90,6 @@ earnings-call-verifier/
 │   │   │   └── apiClient.js     # Backend API client
 │   │   └── index.css            # Styles
 │   ├── package.json
-│   ├── nginx.conf               # Nginx configuration for Docker
 │   └── vite.config.js
 │
 ├── data/                        # Transcript manifest (URLs) for batch runs
