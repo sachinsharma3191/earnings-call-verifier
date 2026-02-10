@@ -20,7 +20,7 @@ export class SECDataService implements ISECDataProvider {
       throw new Error(`SEC API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
     const quarters = this.extractQuarterlyData(data);
 
     return {

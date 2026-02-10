@@ -28,7 +28,7 @@ export class FinnhubTranscriptService implements ITranscriptProvider {
         return null;
       }
 
-      const data = await response.json();
+      const data = await response.json() as any[];
       const transcript = data.find((t: any) => 
         t.year === year && t.quarter === quarter
       );
@@ -50,7 +50,7 @@ export class FinnhubTranscriptService implements ITranscriptProvider {
         return [];
       }
 
-      const data = await response.json();
+      const data = await response.json() as any[];
       return data.map((t: any) => ({
         symbol: t.symbol,
         year: t.year,
