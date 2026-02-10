@@ -6,6 +6,8 @@ function ClaimExplorer({ companies }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   // Flatten all claims
   const allClaims = useMemo(() => {
@@ -59,7 +61,7 @@ function ClaimExplorer({ companies }) {
 
   // Filter claims
   const filteredClaims = useMemo(() => {
-    return allClaims.filter(claim => {
+    const filtered = allClaims.filter(claim => {
       const matchesSearch = 
         claim.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
         claim.speaker.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -73,7 +75,19 @@ function ClaimExplorer({ companies }) {
       
       return matchesSearch && matchesStatus && matchesCompany && matchesSeverity;
     });
+    
+    // Reset to page 1 when filters change
+    setCurrentPage(1);
+    return filtered;
   }, [allClaims, searchTerm, statusFilter, companyFilter, severityFilter]);
+
+  // Paginate filtered claims
+  const totalPages = Math.ceil(filteredClaims.length / itemsPerPage);
+  const paginatedClaims = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredClaims.slice(startIndex, endIndex);
+  }, [filteredClaims, currentPage, itemsPerPage]);
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -203,10 +217,10 @@ function ClaimExplorer({ companies }) {
           </div>
         )}
 
-        {/* Results Count */}
+        {/* Results Count and Pagination Info */}
         <div className="mt-4 pt-4 border-t border-gray-600 flex items-center justify-between">
           <span className="text-sm text-gray-400">
-            Showing <span className="font-semibold text-white">{filteredClaims.length}</span> of <span className="font-semibold text-white">{allClaims.length}</span> claims
+            Showing <span className="font-semibold text-white">{Math.min((currentPage - 1) * itemsPerPage + 1, filteredClaims.length)}-{Math.min(currentPage * itemsPerPage, filteredClaims.length)}</span> of <span className="font-semibold text-white">{filteredClaims.length}</span> claims
           </span>
           {(searchTerm || statusFilter !== 'all' || companyFilter !== 'all' || severityFilter !== 'all') && (
             <button
@@ -215,6 +229,7 @@ function ClaimExplorer({ companies }) {
                 setStatusFilter('all');
                 setCompanyFilter('all');
                 setSeverityFilter('all');
+                setCurrentPage(1);
               }}
               className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
             >
@@ -226,14 +241,14 @@ function ClaimExplorer({ companies }) {
 
       {/* Claims List */}
       <div className="space-y-4">
-        {filteredClaims.length === 0 ? (
+        {paginatedClaims.length === 0 ? (
           <div className="card p-12 text-center">
             <Filter className="h-12 w-12 text-gray-600 mx-auto mb-4" />
             <p className="text-gray-400 text-lg">No claims match your filters</p>
             <p className="text-gray-500 text-sm mt-2">Try adjusting your search criteria or clearing filters</p>
           </div>
         ) : (
-          filteredClaims.map((claim) => (
+          paginatedClaims.map((claim) => (
             <div 
               key={claim.id}
               className={`card p-6 hover:shadow-xl transition-all ${
@@ -324,6 +339,56 @@ function ClaimExplorer({ companies }) {
           ))
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="card p-4 flex items-center justify-between">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-lg transition-colors"
+          >
+            Previous
+          </button>
+          
+          <div className="flex items-center space-x-2">
+            {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 7) {
+                pageNum = i + 1;
+              } else if (currentPage <= 4) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 3) {
+                pageNum = totalPages - 6 + i;
+              } else {
+                pageNum = currentPage - 3 + i;
+              }
+              
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                    currentPage === pageNum
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+          </div>
+          
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-lg transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }
