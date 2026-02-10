@@ -11,31 +11,29 @@ export default async function handler(req, res) {
   console.log(`[API] GET /api/companies - Request received`);
   
   try {
-    // Get all companies with their cached data
+    // Get all companies with their cached aggregated data
     const companiesWithData = COMPANIES_LIST.map(company => {
       const cachedData = fileCache.get(company.ticker);
       
       if (cachedData) {
-        // Return basic info with quarters from cache
         return {
-          ticker: company.ticker,
-          name: company.name,
-          cik: company.cik,
+          ticker: cachedData.ticker || company.ticker,
+          name: cachedData.name || company.name,
+          cik: cachedData.cik || company.cik,
           quarters: cachedData.quarters || [],
-          latestQuarter: cachedData.quarters?.[0] 
-            ? `${cachedData.quarters[0].fiscal_period} ${cachedData.quarters[0].fiscal_year}`
-            : 'Q4 2025',
+          latestQuarter: cachedData.quarters?.[0]?.quarter || 'Q4 2025',
+          coverage: cachedData.coverage || null,
           data_source: 'cache'
         };
       }
       
-      // Return basic info without quarters if not cached
       return {
         ticker: company.ticker,
         name: company.name,
         cik: company.cik,
         quarters: [],
         latestQuarter: 'Q4 2025',
+        coverage: null,
         data_source: 'not_cached'
       };
     });

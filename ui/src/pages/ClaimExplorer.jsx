@@ -158,9 +158,10 @@ function ClaimExplorer({ companies }) {
           setAvailableQuarters(q);
           setSelectedQuarter((prev) => prev || q?.[0] || '');
           
-          // Set transcript source for first quarter
-          if (quarters.length > 0 && quarters[0].transcriptSource) {
-            setTranscriptSource(quarters[0].transcriptSource);
+          // Set transcript source for first quarter (supports both old and new format)
+          if (quarters.length > 0) {
+            const src = quarters[0].transcript || quarters[0].transcriptSource;
+            if (src) setTranscriptSource(src);
           }
         }
       } catch (e) {
@@ -187,8 +188,9 @@ function ClaimExplorer({ companies }) {
     if (!selectedQuarter || !quartersData.length) return;
     
     const quarterData = quartersData.find(q => q.quarter === selectedQuarter);
-    if (quarterData?.transcriptSource) {
-      setTranscriptSource(quarterData.transcriptSource);
+    const src = quarterData?.transcript || quarterData?.transcriptSource;
+    if (src) {
+      setTranscriptSource(src);
     } else {
       // Fallback to mock
       const mockSource = getMockTranscript(selectedTicker, selectedQuarter);

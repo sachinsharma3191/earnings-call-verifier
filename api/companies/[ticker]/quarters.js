@@ -1,6 +1,6 @@
-import { SECDataService } from '../../_lib/services/SECDataService.js';
-import { getTranscriptSource } from '../../_lib/data/transcriptSources.js';
-import { TICKER_TO_CIK, STATIC_QUARTERS } from '../../_lib/constants/index.js';
+import { fileCache } from '../../_lib/cache/FileCache.js';
+import { DataAggregator } from '../../_lib/services/DataAggregator.js';
+import { TICKER_TO_CIK } from '../../_lib/constants/index.js';
 
 export default async function handler(req, res) {
   const { ticker } = req.query;
@@ -9,95 +9,46 @@ export default async function handler(req, res) {
   console.log(`[API] GET /api/companies/${ticker}/quarters - Request received`);
   
   if (!ticker) {
-    console.log(`[API] GET /api/companies/${ticker}/quarters - Error: Missing ticker`);
     return res.status(400).json({ error: 'Missing ticker parameter' });
   }
 
-  const cik = TICKER_TO_CIK[ticker.toUpperCase()];
+  const upperTicker = ticker.toUpperCase();
+  const cik = TICKER_TO_CIK[upperTicker];
   if (!cik) {
-    console.log(`[API] GET /api/companies/${ticker}/quarters - Error: Company not found`);
-    return res.status(404).json({ error: 'Company not found' });
+    return res.status(400).json({ error: `Company ${ticker} not found` });
   }
 
   try {
-    const secService = new SECDataService();
-    const quarters = await secService.getQuarterlyData(cik);
+    // Try cache first
+    let data = fileCache.get(upperTicker);
     
-    // Add transcript source attribution to each quarter
-    let quartersWithSources = quarters.slice(0, 4).map(q => {
-      const quarterStr = `${q.fiscal_period} ${q.fiscal_year}`;
-      const quarterKey = quarterStr.replace(' ', '-');
-      const transcriptSource = getTranscriptSource(ticker.toUpperCase(), quarterKey);
-      
-      return {
-        quarter: quarterStr,
-        endDate: q.end_date,
-        filed: q.filed,
-        transcriptSource: transcriptSource || {
-          available: false,
-          source: 'Not Available',
-          type: 'missing',
-          note: 'Transcript source not configured'
-        }
-      };
-    });
-    
-    // If we don't have Q4 2025, add it from static data
-    const hasQ4 = quartersWithSources.some(q => q.quarter === 'Q4 2025');
-    if (!hasQ4) {
-      const q4Static = STATIC_QUARTERS[0]; // Q4 2025 is first in static list
-      const transcriptSource = getTranscriptSource(ticker.toUpperCase(), 'Q4-2025');
-      
-      quartersWithSources.unshift({
-        quarter: q4Static.quarter,
-        endDate: q4Static.endDate,
-        filed: q4Static.filed,
-        transcriptSource: transcriptSource || {
-          available: false,
-          source: 'Not Available',
-          type: 'missing',
-          note: 'Transcript source not configured'
-        }
-      });
-      
-      // Keep only 4 quarters
-      quartersWithSources = quartersWithSources.slice(0, 4);
+    // If not cached, aggregate fresh
+    if (!data) {
+      const aggregator = new DataAggregator();
+      data = await aggregator.getCompanyData(upperTicker);
+      if (data) {
+        fileCache.set(upperTicker, data);
+      }
     }
-    
+
+    if (!data || !data.quarters) {
+      return res.status(400).json({ error: `No data available for ${upperTicker}` });
+    }
+
     const duration = Date.now() - startTime;
-    console.log(`[API] GET /api/companies/${ticker}/quarters - Success (${duration}ms) - ${quartersWithSources.length} quarters (${hasQ4 ? 'all from SEC' : 'Q4 from static'})`);
-    
+    const secCount = data.coverage?.financial?.sec || 0;
+    const staticCount = data.coverage?.financial?.static || 0;
+    console.log(`[API] GET /api/companies/${upperTicker}/quarters - Success (${duration}ms) - ${data.quarters.length} quarters (${secCount} SEC + ${staticCount} static)`);
+
     return res.status(200).json({
-      ticker: ticker.toUpperCase(),
-      quarters: quartersWithSources,
-      source: hasQ4 ? 'sec_edgar' : 'sec_edgar_with_static_q4'
+      ticker: upperTicker,
+      quarters: data.quarters,
+      coverage: data.coverage,
+      source: 'aggregated'
     });
   } catch (error) {
-    console.warn(`[API] GET /api/companies/${ticker}/quarters - SEC API failed, using static data:`, error.message);
-    
-    // Add transcript sources to static quarters too
-    const quartersWithSources = STATIC_QUARTERS.map(q => {
-      const quarterKey = q.quarter.replace(' ', '-');
-      const transcriptSource = getTranscriptSource(ticker.toUpperCase(), quarterKey);
-      
-      return {
-        ...q,
-        transcriptSource: transcriptSource || {
-          available: false,
-          source: 'Not Available',
-          type: 'missing',
-          note: 'Transcript source not configured'
-        }
-      };
-    });
-    
     const duration = Date.now() - startTime;
-    console.log(`[API] GET /api/companies/${ticker}/quarters - Fallback (${duration}ms) - ${quartersWithSources.length} static quarters`);
-    
-    return res.status(200).json({
-      ticker: ticker.toUpperCase(),
-      quarters: quartersWithSources,
-      source: 'static_fallback'
-    });
+    console.error(`[API] GET /api/companies/${upperTicker}/quarters - Error (${duration}ms):`, error.message);
+    return res.status(400).json({ error: `Failed to get quarters for ${upperTicker}`, details: error.message });
   }
 }

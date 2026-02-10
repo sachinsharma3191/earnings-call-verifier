@@ -1,8 +1,8 @@
-// Auto-prefetch companies data when server starts
+// Auto-prefetch companies data when server starts using DataAggregator
+// Combines all sources: SEC EDGAR, Transcript Sources, Static/Mock fallback
 import { fileCache } from './cache/FileCache.js';
-import { SECDataService } from './services/SECDataService.js';
-import { getTranscriptSource } from './data/transcriptSources.js';
-import { TICKER_TO_CIK, COMPANY_NAMES, MOCK_QUARTERS } from './constants/index.js';
+import { DataAggregator } from './services/DataAggregator.js';
+import { TICKER_TO_CIK } from './constants/index.js';
 
 let prefetchStarted = false;
 
@@ -23,65 +23,32 @@ export async function initializeCache() {
       return;
     }
 
-    console.log('📡 Prefetching all companies data...');
+    console.log('📡 Prefetching all companies data (aggregating sources)...');
     
-    const secService = new SECDataService();
+    const aggregator = new DataAggregator();
     let successCount = 0;
     let failedCount = 0;
 
-    // Prefetch all companies synchronously on startup
-    for (const [ticker, cik] of Object.entries(TICKER_TO_CIK)) {
+    for (const ticker of Object.keys(TICKER_TO_CIK)) {
       try {
-        // Check if already cached
         if (fileCache.has(ticker)) {
           console.log(`  ✓ ${ticker} already cached`);
           successCount++;
           continue;
         }
 
-        const data = await secService.getCompanyFinancials(cik);
-        
-        // Check if data is recent (within last 1 year)
-        const latestYear = data.quarters[0]?.fiscal_year || 0;
-        const currentYear = new Date().getFullYear();
-        
-        if (currentYear - latestYear > 1 || data.quarters.length === 0) {
-          // Use mock data with transcript sources
-          const quartersWithSources = MOCK_QUARTERS.map(q => {
-            const quarterKey = `${q.fiscal_period}-${q.fiscal_year}`;
-            const transcriptSource = getTranscriptSource(ticker, quarterKey);
-            return {
-              ...q,
-              transcriptSource: transcriptSource || { available: false, source: 'Not Available', type: 'missing' }
-            };
-          });
-          
-          const mockData = {
-            ticker,
-            company_name: COMPANY_NAMES[ticker] || ticker,
-            cik,
-            quarters: quartersWithSources,
-            data_source: 'mock_fallback'
-          };
-          
-          fileCache.set(ticker, mockData);
-          console.log(`  ✓ ${ticker} cached (mock data)`);
+        const data = await aggregator.getCompanyData(ticker);
+        if (data) {
+          fileCache.set(ticker, data);
+          const secQ = data.coverage.financial.sec;
+          const staticQ = data.coverage.financial.static;
+          const transcripts = data.coverage.transcript.available;
+          console.log(`  ✓ ${ticker} cached (${secQ} SEC + ${staticQ} static, ${transcripts} transcripts)`);
+          successCount++;
         } else {
-          // Add transcript sources to real data
-          const quartersWithSources = data.quarters.map(q => {
-            const quarterKey = `${q.fiscal_period}-${q.fiscal_year}`;
-            const transcriptSource = getTranscriptSource(ticker, quarterKey);
-            return {
-              ...q,
-              transcriptSource: transcriptSource || { available: false, source: 'Not Available', type: 'missing' }
-            };
-          });
-          
-          fileCache.set(ticker, { ...data, quarters: quartersWithSources });
-          console.log(`  ✓ ${ticker} cached (SEC data)`);
+          console.error(`  ✗ ${ticker} - no data returned`);
+          failedCount++;
         }
-        
-        successCount++;
       } catch (error) {
         console.error(`  ✗ ${ticker} failed:`, error.message);
         failedCount++;
