@@ -16,6 +16,77 @@ function ClaimExplorer({ companies }) {
   const [verifyError, setVerifyError] = useState(null);
   const [verificationResult, setVerificationResult] = useState(null);
 
+  const sampleClaims = {
+    AAPL: [
+      {
+        speaker: "Tim Cook",
+        role: "CEO",
+        text: "Our Q4 revenue came in at $95.3 billion, representing growth of 6% year over year",
+        metric: "Revenue",
+        claimed: 95.3,
+        unit: "billion"
+      },
+      {
+        speaker: "Luca Maestri",
+        role: "CFO",
+        text: "Operating income came in at $31.5 billion, representing an operating margin of 33.1%",
+        metric: "Operating Income",
+        claimed: 31.5,
+        unit: "billion"
+      },
+      {
+        speaker: "Tim Cook",
+        role: "CEO",
+        text: "Our gross margin expanded to 46.2%, up 150 basis points year over year",
+        metric: "Gross Margin",
+        claimed: 46.2,
+        unit: "percent"
+      }
+    ],
+    NVDA: [
+      {
+        speaker: "Jensen Huang",
+        role: "CEO",
+        text: "Revenue for the quarter was $22.1 billion, up 265% from a year ago",
+        metric: "Revenue",
+        claimed: 22.1,
+        unit: "billion"
+      },
+      {
+        speaker: "Colette Kress",
+        role: "CFO",
+        text: "Gross margin came in at 76.2%, reflecting strong demand for our data center products",
+        metric: "Gross Margin",
+        claimed: 76.2,
+        unit: "percent"
+      }
+    ],
+    MSFT: [
+      {
+        speaker: "Satya Nadella",
+        role: "CEO",
+        text: "Revenue was $62.0 billion, up 18% year-over-year",
+        metric: "Revenue",
+        claimed: 62.0,
+        unit: "billion"
+      },
+      {
+        speaker: "Amy Hood",
+        role: "CFO",
+        text: "Operating income increased to $27.2 billion",
+        metric: "Operating Income",
+        claimed: 27.2,
+        unit: "billion"
+      }
+    ]
+  };
+
+  const loadSampleClaims = () => {
+    const samples = sampleClaims[selectedTicker] || sampleClaims.AAPL;
+    setClaimsJson(JSON.stringify(samples, null, 2));
+    setVerifyError(null);
+  };
+
   useEffect(() => {
     if (!selectedTicker && companies?.length) setSelectedTicker(companies[0].ticker);
   }, [companies]);
@@ -85,6 +156,39 @@ function ClaimExplorer({ companies }) {
         <p className="text-gray-400">Paste Claude-extracted claims JSON and verify against SEC filings</p>
       </div>
 
+      {/* Interactive Steps Guide */}
+      {!verificationResult && (
+        <div className="card p-6 bg-gradient-to-r from-blue-900/20 to-purple-900/20 border-blue-500/30">
+          <h3 className="text-lg font-semibold mb-3 flex items-center">
+            <PlayCircle className="h-5 w-5 mr-2 text-blue-400" />
+            Quick Start Guide
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center font-bold">1</div>
+              <div>
+                <div className="font-semibold text-white mb-1">Select Company & Quarter</div>
+                <div className="text-gray-400">Choose a company and reporting period to verify</div>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center font-bold">2</div>
+              <div>
+                <div className="font-semibold text-white mb-1">Add Claims JSON</div>
+                <div className="text-gray-400">Paste claims or use sample data to get started</div>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center font-bold">3</div>
+              <div>
+                <div className="font-semibold text-white mb-1">Verify Claims</div>
+                <div className="text-gray-400">Click verify to cross-check against SEC data</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Run Verification */}
       <div className="card p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -151,13 +255,22 @@ function ClaimExplorer({ companies }) {
         </div>
 
         <div className="mt-4">
-          <label className="block text-sm text-gray-400 mb-2 font-medium">Claims JSON (from Claude Skill)</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm text-gray-400 font-medium">Claims JSON (from Claude Skill)</label>
+            <button
+              onClick={loadSampleClaims}
+              className="text-sm px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors flex items-center space-x-1"
+            >
+              <PlayCircle className="h-4 w-4" />
+              <span>Load Sample Claims</span>
+            </button>
+          </div>
           <textarea
             value={claimsJson}
             onChange={(e) => setClaimsJson(e.target.value)}
             rows={8}
-            placeholder='Paste an array of claims here: [{"metric":"Revenue","claimed":29.1,"unit":"billion","text":"..."}]'
-            className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder='Paste an array of claims here: [{"speaker":"CEO Name","role":"CEO","metric":"Revenue","claimed":29.1,"unit":"billion","text":"..."}]'
+            className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
           />
           {verifyError && <div className="mt-3 text-sm text-red-300">{verifyError}</div>}
           {verificationResult?.summary && (
