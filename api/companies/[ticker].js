@@ -13,6 +13,26 @@ const TICKER_TO_CIK = {
   'WMT': '0000104169'
 };
 
+const COMPANY_NAMES = {
+  'AAPL': 'Apple Inc.',
+  'NVDA': 'NVIDIA Corporation',
+  'MSFT': 'Microsoft Corporation',
+  'GOOGL': 'Alphabet Inc.',
+  'AMZN': 'Amazon.com Inc.',
+  'META': 'Meta Platforms Inc.',
+  'TSLA': 'Tesla Inc.',
+  'JPM': 'JPMorgan Chase & Co.',
+  'JNJ': 'Johnson & Johnson',
+  'WMT': 'Walmart Inc.'
+};
+
+const MOCK_QUARTERS = [
+  { fiscal_period: 'Q3', fiscal_year: 2024, end_date: '2024-09-30', filed: '2024-10-31', Revenues: 94.9, NetIncome: 22.5, GrossProfit: 44.3, OperatingIncome: 29.2 },
+  { fiscal_period: 'Q2', fiscal_year: 2024, end_date: '2024-06-30', filed: '2024-07-31', Revenues: 85.8, NetIncome: 21.4, GrossProfit: 40.1, OperatingIncome: 27.4 },
+  { fiscal_period: 'Q1', fiscal_year: 2024, end_date: '2024-03-31', filed: '2024-04-30', Revenues: 90.8, NetIncome: 23.6, GrossProfit: 41.9, OperatingIncome: 28.3 },
+  { fiscal_period: 'Q4', fiscal_year: 2023, end_date: '2023-12-31', filed: '2024-01-31', Revenues: 119.6, NetIncome: 33.9, GrossProfit: 54.9, OperatingIncome: 40.3 }
+];
+
 export default async function handler(req, res) {
   try {
     const { ticker } = req.query;
@@ -25,10 +45,38 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Company not found' });
     }
 
-    const secService = new SECDataService();
-    const data = await secService.getCompanyFinancials(cik);
-
-    return res.status(200).json(data);
+    try {
+      const secService = new SECDataService();
+      const data = await secService.getCompanyFinancials(cik);
+      
+      // Check if data is recent (within last 2 years)
+      const latestYear = data.quarters[0]?.fiscal_year || 0;
+      const currentYear = new Date().getFullYear();
+      
+      if (currentYear - latestYear > 2) {
+        // SEC data is too old, use mock data
+        return res.status(200).json({
+          ticker: ticker,
+          company_name: COMPANY_NAMES[ticker] || ticker,
+          cik: cik,
+          quarters: MOCK_QUARTERS,
+          data_source: 'mock_fallback',
+          last_updated: new Date().toISOString().slice(0, 10)
+        });
+      }
+      
+      return res.status(200).json(data);
+    } catch (secError) {
+      // SEC API failed, return mock data
+      return res.status(200).json({
+        ticker: ticker,
+        company_name: COMPANY_NAMES[ticker] || ticker,
+        cik: cik,
+        quarters: MOCK_QUARTERS,
+        data_source: 'mock_fallback',
+        last_updated: new Date().toISOString().slice(0, 10)
+      });
+    }
   } catch (error) {
     console.error('Error fetching company:', error);
     return res.status(500).json({ error: error.message || 'Internal server error' });

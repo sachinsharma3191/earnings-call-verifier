@@ -14,10 +14,10 @@ const TICKER_TO_CIK = {
 };
 
 const STATIC_QUARTERS = [
-  { quarter: 'Q1 2025', endDate: '2025-03-31', filed: '2025-04-30' },
-  { quarter: 'Q2 2025', endDate: '2025-06-30', filed: '2025-07-30' },
-  { quarter: 'Q3 2025', endDate: '2025-09-30', filed: '2025-10-30' },
-  { quarter: 'Q4 2024', endDate: '2024-12-31', filed: '2025-01-30' }
+  { quarter: 'Q3 2024', endDate: '2024-09-30', filed: '2024-10-31' },
+  { quarter: 'Q2 2024', endDate: '2024-06-30', filed: '2024-07-31' },
+  { quarter: 'Q1 2024', endDate: '2024-03-31', filed: '2024-04-30' },
+  { quarter: 'Q4 2023', endDate: '2023-12-31', filed: '2024-01-31' }
 ];
 
 export default async function handler(req, res) {
