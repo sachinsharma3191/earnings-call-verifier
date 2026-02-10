@@ -26,35 +26,16 @@ function App() {
       setCompaniesError(null);
       try {
         const list = await apiClient.getCompanies();
-        const tickers = (list?.companies || []).map((c) => c.ticker);
+        const basicCompanies = (list?.companies || []).map((c) => ({
+          ticker: c.ticker,
+          name: c.name,
+          cik: c.cik,
+          quarters: [],
+          latestQuarter: 'Q3 2024', // Default - will load on demand
+          financials: null
+        }));
 
-        const detailed = await Promise.all(
-          tickers.map(async (ticker) => {
-            try {
-              const fin = await apiClient.getCompany(ticker, 4);
-              return {
-                ticker: fin.ticker,
-                name: fin.company_name,
-                cik: fin.cik,
-                quarters: (fin.quarters || []).map((q) => `${q.fiscal_period} ${q.fiscal_year}`),
-                latestQuarter: fin.quarters?.[0] ? `${fin.quarters[0].fiscal_period} ${fin.quarters[0].fiscal_year}` : null,
-                financials: fin
-              };
-            } catch (e) {
-              return {
-                ticker,
-                name: ticker,
-                cik: null,
-                quarters: [],
-                latestQuarter: null,
-                financials: null,
-                error: e?.message || 'Failed to load company'
-              };
-            }
-          })
-        );
-
-        if (!cancelled) setCompanies(detailed);
+        if (!cancelled) setCompanies(basicCompanies);
       } catch (e) {
         if (!cancelled) setCompaniesError(e?.message || 'Failed to load companies');
       } finally {
