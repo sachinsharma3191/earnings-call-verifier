@@ -332,23 +332,50 @@ function ClaimExplorer({ companies }) {
 
         {/* Transcript Source Attribution */}
         {transcriptSource && (
-          <div className="mt-4 p-3 bg-gray-800/50 border border-gray-700 rounded-lg">
+          <div className={`mt-4 p-3 border rounded-lg ${
+            transcriptSource.scraped ? 'bg-green-900/20 border-green-700/50' :
+            transcriptSource.type === 'proxy' ? 'bg-yellow-900/20 border-yellow-700/50' :
+            transcriptSource.type === 'system_default' ? 'bg-red-900/20 border-red-700/50' :
+            'bg-gray-800/50 border-gray-700'
+          }`}>
             <div className="flex items-start space-x-2">
-              <FileText className="h-4 w-4 text-blue-400 mt-0.5" />
+              <FileText className={`h-4 w-4 mt-0.5 ${
+                transcriptSource.scraped ? 'text-green-400' :
+                transcriptSource.type === 'proxy' ? 'text-yellow-400' :
+                transcriptSource.type === 'system_default' ? 'text-red-400' :
+                'text-blue-400'
+              }`} />
               <div className="flex-1">
                 <div className="text-xs text-gray-400 mb-1">Transcript Source</div>
                 <div className="text-sm text-white font-medium">{transcriptSource.source || 'Unknown'}</div>
+                {transcriptSource.scraped && (
+                  <div className="mt-1 text-xs text-green-400 flex items-center space-x-1">
+                    <CheckCircle className="h-3 w-3" />
+                    <span>Full earnings call transcript ({transcriptSource.charCount?.toLocaleString() || 0} chars)</span>
+                  </div>
+                )}
+                {transcriptSource.type === 'transcript' && !transcriptSource.scraped && (
+                  <div className="mt-1 text-xs text-blue-400">Transcript source configured</div>
+                )}
                 {transcriptSource.type === 'proxy' && (
                   <div className="mt-1 text-xs text-yellow-400 flex items-center space-x-1">
                     <AlertTriangle className="h-3 w-3" />
                     <span>Proxy Document (SEC 10-Q/10-K MD&A) - Full transcript unavailable</span>
                   </div>
                 )}
-                {transcriptSource.type === 'transcript' && (
-                  <div className="mt-1 text-xs text-green-400">Full earnings call transcript</div>
+                {transcriptSource.type === 'system_default' && (
+                  <div className="mt-1 text-xs text-red-400 flex items-center space-x-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    <span>No source available - using system default</span>
+                  </div>
                 )}
                 {transcriptSource.note && (
                   <div className="mt-1 text-xs text-gray-500">{transcriptSource.note}</div>
+                )}
+                {transcriptSource.sourcesTried?.length > 0 && !transcriptSource.scraped && (
+                  <div className="mt-1 text-xs text-gray-500">
+                    Sources tried: {transcriptSource.sourcesTried.join(', ')}
+                  </div>
                 )}
               </div>
             </div>

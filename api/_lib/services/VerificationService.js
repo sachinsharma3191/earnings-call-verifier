@@ -1,5 +1,5 @@
-export const DOLLAR_TOLERANCE_PCT = 5.0;
-export const PERCENTAGE_TOLERANCE_POINTS = 2.0;
+// VerificationService: Claim verification logic (moved from verify.js)
+import { DOLLAR_TOLERANCE_PCT, PERCENTAGE_TOLERANCE_POINTS } from '../constants/index.js';
 
 export function findQuarterData(quarters, quarterStr) {
   const parts = quarterStr.split(" ").filter(Boolean);

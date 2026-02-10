@@ -1,24 +1,142 @@
 // DataAggregator: Combines data from all available sources for each company/quarter
-// Priority: No fixed priority among external sources - use whichever has data
-// Fallback chain: SEC EDGAR -> External Transcript Sources -> Static/Mock data
+// Fallback chain per quarter:
+//   1. Try primary source from transcriptSources.json (scrape)
+//   2. If primary fails -> try ALL other sources (Motley Fool, Yahoo, Investing.com, SEC proxy)
+//   3. If all external sources fail -> use system default (static/mock data)
+//   4. UI shows "No source available - using system default" when all fail
 
 import { SECDataService } from './SECDataService.js';
+import { TranscriptScraper } from './TranscriptScraper.js';
 import { TRANSCRIPT_SOURCES, getTranscriptSource } from '../data/transcriptSources.js';
-import { TICKER_TO_CIK, COMPANY_NAMES, MOCK_QUARTERS, STATIC_QUARTERS } from '../constants/index.js';
+import { TICKER_TO_CIK, COMPANY_NAMES, MOCK_QUARTERS, STATIC_QUARTERS, TARGET_QUARTERS, TARGET_YEAR } from '../constants/index.js';
 
-const TARGET_QUARTERS = ['Q4', 'Q3', 'Q2', 'Q1'];
-const TARGET_YEAR = 2025;
+// All known transcript source URLs to try as fallbacks
+// These are generic search/listing pages that may have transcripts
+const FALLBACK_SOURCES = [
+  {
+    name: 'The Motley Fool',
+    buildUrl: (ticker, qNum, year) =>
+      `https://www.fool.com/earnings/call-transcripts/${year > 2025 ? '2026' : year}/${String(qNum * 3 + 1).padStart(2, '0')}/01/${ticker.toLowerCase()}-${ticker.toLowerCase()}-q${qNum}-${year}-earnings-call-transcript/`
+  },
+  {
+    name: 'Yahoo Finance',
+    buildUrl: (ticker, qNum, year) =>
+      `https://finance.yahoo.com/news/${ticker.toLowerCase()}-q${qNum}-${year}-earnings-call-transcript`
+  },
+  {
+    name: 'Investing.com',
+    buildUrl: (ticker, qNum, year) =>
+      `https://www.investing.com/earnings/${ticker.toLowerCase()}-earnings`
+  }
+];
 
 export class DataAggregator {
-  constructor() {
+  constructor({ scrapeTranscripts = false } = {}) {
     this.secService = new SECDataService();
+    this.scraper = new TranscriptScraper();
+    this.scrapeTranscripts = scrapeTranscripts;
+  }
+
+  /**
+   * Try to scrape transcript text from a URL.
+   * Returns { text, charCount } or { text: null, charCount: 0 } on failure.
+   */
+  async tryScrapeSingle(url, sourceName) {
+    try {
+      const text = await this.scraper.fetchTranscript(url, sourceName);
+      if (text && text.length > 500) {
+        return { text, charCount: text.length };
+      }
+      return { text: null, charCount: 0 };
+    } catch {
+      return { text: null, charCount: 0 };
+    }
+  }
+
+  /**
+   * For a given company/quarter, try ALL sources until one succeeds.
+   * Order: primary source first, then all fallback sources.
+   * @returns {{ source, url, text, charCount, scraped, type, sourcesTried }}
+   */
+  async tryAllTranscriptSources(ticker, quarterKey, primarySource) {
+    const sourcesTried = [];
+
+    // 1. Try primary source from transcriptSources.json
+    if (primarySource?.url && primarySource?.available) {
+      sourcesTried.push(primarySource.source);
+      const result = await this.tryScrapeSingle(primarySource.url, primarySource.source);
+      if (result.text) {
+        return {
+          source: primarySource.source,
+          url: primarySource.url,
+          text: result.text,
+          charCount: result.charCount,
+          scraped: true,
+          type: 'transcript',
+          sourcesTried
+        };
+      }
+      console.log(`[DataAggregator] ${ticker} ${quarterKey}: Primary source ${primarySource.source} failed, trying fallbacks...`);
+    }
+
+    // 2. Try each fallback source
+    const parts = quarterKey.split('-'); // e.g. "Q4-2025"
+    const qNum = parseInt(parts[0].replace('Q', ''));
+    const year = parseInt(parts[1]);
+
+    for (const fallback of FALLBACK_SOURCES) {
+      // Skip if this is the same as the primary source we already tried
+      if (primarySource?.source === fallback.name) continue;
+
+      const fallbackUrl = fallback.buildUrl(ticker, qNum, year);
+      sourcesTried.push(fallback.name);
+      const result = await this.tryScrapeSingle(fallbackUrl, fallback.name);
+      if (result.text) {
+        console.log(`[DataAggregator] ${ticker} ${quarterKey}: ✅ Fallback ${fallback.name} succeeded (${result.charCount} chars)`);
+        return {
+          source: fallback.name,
+          url: fallbackUrl,
+          text: result.text,
+          charCount: result.charCount,
+          scraped: true,
+          type: 'transcript',
+          sourcesTried
+        };
+      }
+    }
+
+    // 3. Try SEC proxy if available
+    if (primarySource?.type === 'proxy' && primarySource?.url) {
+      sourcesTried.push('SEC EDGAR (proxy)');
+      return {
+        source: primarySource.source,
+        url: primarySource.url,
+        text: null,
+        charCount: 0,
+        scraped: false,
+        type: 'proxy',
+        note: primarySource.note || 'Using SEC filing as proxy',
+        sourcesTried
+      };
+    }
+
+    // 4. All sources failed
+    console.log(`[DataAggregator] ${ticker} ${quarterKey}: ❌ All sources failed (tried: ${sourcesTried.join(', ')})`);
+    return {
+      source: 'System Default',
+      url: null,
+      text: null,
+      charCount: 0,
+      scraped: false,
+      type: 'system_default',
+      note: `No source available - using system default. Tried: ${sourcesTried.join(', ')}`,
+      sourcesTried
+    };
   }
 
   /**
    * Get aggregated data for a single company across all 4 quarters.
-   * Checks SEC first, then fills gaps from transcript sources, then static fallback.
-   * @param {string} ticker - Company ticker symbol
-   * @returns {object} - Aggregated company data with source attribution per quarter
+   * For each quarter: SEC for financials, then try all transcript sources with fallback.
    */
   async getCompanyData(ticker) {
     const cik = TICKER_TO_CIK[ticker];
@@ -47,17 +165,14 @@ export class DataAggregator {
     }
 
     // Step 3: For each target quarter, aggregate from best available source
-    const aggregatedQuarters = TARGET_QUARTERS.map(qp => {
+    const aggregatedQuarters = [];
+
+    for (const qp of TARGET_QUARTERS) {
       const key = `${qp}-${TARGET_YEAR}`;
       const quarterLabel = `${qp} ${TARGET_YEAR}`;
 
-      // Source 1: SEC EDGAR (financial data)
+      // Financial data: SEC first, then static fallback
       const secData = secMap.get(key);
-
-      // Source 2: Transcript source manifest (external transcript links)
-      const transcriptSource = getTranscriptSource(ticker, key);
-
-      // Source 3: Static/Mock fallback
       const staticData = MOCK_QUARTERS.find(
         m => m.fiscal_period === qp && m.fiscal_year === TARGET_YEAR
       );
@@ -65,12 +180,10 @@ export class DataAggregator {
         s => s.quarter === quarterLabel
       );
 
-      // Determine financial data source
       let financials = null;
       let dataSource = 'none';
 
       if (secData) {
-        // SEC has real financial data for this quarter
         financials = {
           Revenues: secData.Revenues,
           NetIncome: secData.NetIncome,
@@ -82,7 +195,6 @@ export class DataAggregator {
         };
         dataSource = 'sec_edgar';
       } else if (staticData) {
-        // Use static/mock financial data as fallback
         financials = {
           Revenues: staticData.Revenues,
           NetIncome: staticData.NetIncome,
@@ -95,37 +207,64 @@ export class DataAggregator {
         dataSource = 'static_fallback';
       }
 
-      // Determine transcript availability
-      let transcript = {
-        available: false,
-        source: 'Not Available',
-        type: 'missing',
-        url: null,
-        note: 'No transcript source found'
-      };
+      // Transcript: try all sources with fallback chain
+      const primarySource = getTranscriptSource(ticker, key);
+      let transcript;
 
-      if (transcriptSource && transcriptSource.available) {
-        // External transcript is available (Motley Fool, Yahoo, Investing.com, etc.)
+      if (this.scrapeTranscripts) {
+        // Scraping enabled: try primary, then fallbacks, then system default
+        const scrapeResult = await this.tryAllTranscriptSources(ticker, key, primarySource);
         transcript = {
-          available: true,
-          source: transcriptSource.source,
-          type: transcriptSource.type || 'transcript',
-          url: transcriptSource.url,
-          filed: transcriptSource.filed
+          available: scrapeResult.type === 'transcript' && scrapeResult.scraped,
+          source: scrapeResult.source,
+          type: scrapeResult.type,
+          url: scrapeResult.url,
+          scraped: scrapeResult.scraped,
+          charCount: scrapeResult.charCount,
+          sourcesTried: scrapeResult.sourcesTried,
+          note: scrapeResult.note || null
         };
-      } else if (transcriptSource && transcriptSource.type === 'proxy') {
-        // Proxy document (SEC 10-Q MD&A) available
-        transcript = {
-          available: false,
-          source: transcriptSource.source,
-          type: 'proxy',
-          url: transcriptSource.url,
-          filed: transcriptSource.filed,
-          note: transcriptSource.note || 'Using SEC filing as proxy'
-        };
+        if (scrapeResult.text) {
+          transcript.textPreview = scrapeResult.text.substring(0, 200) + '...';
+        }
+      } else {
+        // Scraping disabled: just report what's configured
+        if (primarySource?.available) {
+          transcript = {
+            available: true,
+            source: primarySource.source,
+            type: primarySource.type || 'transcript',
+            url: primarySource.url,
+            scraped: false,
+            charCount: 0,
+            sourcesTried: [primarySource.source]
+          };
+        } else if (primarySource?.type === 'proxy') {
+          transcript = {
+            available: false,
+            source: primarySource.source,
+            type: 'proxy',
+            url: primarySource.url,
+            scraped: false,
+            charCount: 0,
+            note: primarySource.note || 'Using SEC filing as proxy',
+            sourcesTried: [primarySource.source]
+          };
+        } else {
+          transcript = {
+            available: false,
+            source: 'System Default',
+            type: 'system_default',
+            url: null,
+            scraped: false,
+            charCount: 0,
+            note: 'No source available - using system default',
+            sourcesTried: []
+          };
+        }
       }
 
-      return {
+      const quarterObj = {
         quarter: quarterLabel,
         endDate: secData?.end_date || staticQuarter?.endDate || null,
         filed: secData?.filed || staticQuarter?.filed || null,
@@ -133,15 +272,18 @@ export class DataAggregator {
         dataSource,
         transcript
       };
-    });
 
-    // Summary of sources used
+      aggregatedQuarters.push(quarterObj);
+    }
+
+    // Summary
     const secCount = aggregatedQuarters.filter(q => q.dataSource === 'sec_edgar').length;
     const staticCount = aggregatedQuarters.filter(q => q.dataSource === 'static_fallback').length;
-    const transcriptCount = aggregatedQuarters.filter(q => q.transcript.available).length;
+    const scrapedCount = aggregatedQuarters.filter(q => q.transcript.scraped).length;
     const proxyCount = aggregatedQuarters.filter(q => q.transcript.type === 'proxy').length;
+    const defaultCount = aggregatedQuarters.filter(q => q.transcript.type === 'system_default').length;
 
-    console.log(`[DataAggregator] ${ticker}: ${secCount} SEC, ${staticCount} static, ${transcriptCount} transcripts, ${proxyCount} proxies`);
+    console.log(`[DataAggregator] ${ticker}: financials=${secCount} SEC + ${staticCount} static | transcripts=${scrapedCount} scraped, ${proxyCount} proxy, ${defaultCount} system_default`);
 
     return {
       ticker,
@@ -150,14 +292,13 @@ export class DataAggregator {
       quarters: aggregatedQuarters,
       coverage: {
         financial: { sec: secCount, static: staticCount, total: 4 },
-        transcript: { available: transcriptCount, proxy: proxyCount, missing: 4 - transcriptCount - proxyCount, total: 4 }
+        transcript: { scraped: scrapedCount, proxy: proxyCount, systemDefault: defaultCount, total: 4 }
       }
     };
   }
 
   /**
    * Get aggregated data for ALL companies.
-   * @returns {object[]} - Array of aggregated company data
    */
   async getAllCompaniesData() {
     const tickers = Object.keys(TICKER_TO_CIK);
@@ -192,8 +333,9 @@ export class DataAggregator {
         quarters: results.length * 4,
         financialFromSEC: results.reduce((sum, c) => sum + c.coverage.financial.sec, 0),
         financialFromStatic: results.reduce((sum, c) => sum + c.coverage.financial.static, 0),
-        transcriptsAvailable: results.reduce((sum, c) => sum + c.coverage.transcript.available, 0),
-        transcriptsProxy: results.reduce((sum, c) => sum + c.coverage.transcript.proxy, 0)
+        transcriptsScraped: results.reduce((sum, c) => sum + c.coverage.transcript.scraped, 0),
+        transcriptsProxy: results.reduce((sum, c) => sum + c.coverage.transcript.proxy, 0),
+        transcriptsDefault: results.reduce((sum, c) => sum + c.coverage.transcript.systemDefault, 0)
       }
     };
   }

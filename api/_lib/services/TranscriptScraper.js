@@ -54,19 +54,31 @@ export class TranscriptScraper {
 
   /**
    * Parses transcripts from The Motley Fool.
-   * Usually contained in <div class="article-body"> or similar.
+   * Tries multiple CSS selectors for robustness across page redesigns.
    */
   parseMotleyFool(html) {
     const $ = cheerio.load(html);
-    // Remove ads and unnecessary elements
-    $('.interad, .promo, script, style').remove();
+    // Remove ads, promos, nav, footer, and unnecessary elements
+    $('.interad, .promo, .ad-slot, .pitch-container, .related-links, script, style, nav, footer, .site-header, .site-footer').remove();
     
-    // Main content container
-    const content = $('.article-body, .tailwind-article-body').first();
+    // Try multiple selectors (Motley Fool has changed their layout over time)
+    const selectors = [
+      '.article-body',
+      '.tailwind-article-body',
+      '[data-testid="article-body"]',
+      '.article-content',
+      '.content-body',
+      'article .entry-content',
+      'article'
+    ];
     
-    if (content.length > 0) {
-      return this.cleanText(content.text());
+    for (const selector of selectors) {
+      const content = $(selector).first();
+      if (content.length > 0 && content.text().trim().length > 500) {
+        return this.cleanText(content.text());
+      }
     }
+    
     return null;
   }
 

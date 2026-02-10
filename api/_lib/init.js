@@ -25,7 +25,7 @@ export async function initializeCache() {
 
     console.log('📡 Prefetching all companies data (aggregating sources)...');
     
-    const aggregator = new DataAggregator();
+    const aggregator = new DataAggregator({ scrapeTranscripts: true });
     let successCount = 0;
     let failedCount = 0;
 
