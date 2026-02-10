@@ -1,8 +1,8 @@
 import Fastify from "fastify";
 import swagger from "@fastify/swagger";
 
-import { getAvailableTickers, COMPANY_CIKS, getCompanyFinancials, calculateMetrics } from "./sec";
-import { findQuarterData, verifySingleClaim, calculateSummary } from "./verify";
+import { getAvailableTickers, COMPANY_CIKS, getCompanyFinancials, calculateMetrics } from "./sec.js";
+import { findQuarterData, verifySingleClaim, calculateSummary } from "./verify.js";
 
 let appPromise = null;
 

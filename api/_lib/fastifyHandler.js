@@ -1,4 +1,4 @@
-import { getFastifyApp } from "./fastifyApp";
+import { getFastifyApp } from "./fastifyApp.js";
 
 function normalizeHeaders(headers) {
   const out = {};
