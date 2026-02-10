@@ -1,0 +1,10 @@
+{
+  "name": "earnings-call-verifier",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "install": "npm --prefix ui install",
+    "build": "npm --prefix ui run build"
+  }
+}
