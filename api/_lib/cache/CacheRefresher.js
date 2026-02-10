@@ -1,138 +1,164 @@
-// CacheRefresher: Background process that periodically recomputes expired data
-// - Runs on a configurable interval (default 30 min)
-// - Checks if aggregate cache is expired
-// - If expired, recomputes all company data using DataAggregator
-// - Uses stale-while-revalidate: serves old data while refreshing in background
+// CacheRefresher: Lightweight orchestrator that spawns a separate worker process
+// for heavy data aggregation. The server stays responsive at all times.
+//
+// Architecture:
+//   Server (light) ──spawns──> Worker (heavy, separate process)
+//   Server reads from .cache/ files that the worker writes to
+//   Server never does SEC API calls or transcript scraping itself
 
-import { fileCache } from './FileCache.js';
+import { fork } from 'child_process';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { aggregateCache } from './AggregateCache.js';
-import { DataAggregator } from '../services/DataAggregator.js';
-import { TICKER_TO_CIK } from '../constants/index.js';
+import { fileCache } from './FileCache.js';
 
-const DEFAULT_REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const WORKER_PATH = join(__dirname, '../../worker.js');
+
+const DEFAULT_CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 
 class CacheRefresher {
-  constructor({ refreshIntervalMs = DEFAULT_REFRESH_INTERVAL_MS, scrapeTranscripts = true } = {}) {
-    this.refreshIntervalMs = refreshIntervalMs;
-    this.scrapeTranscripts = scrapeTranscripts;
+  constructor({ checkIntervalMs = DEFAULT_CHECK_INTERVAL_MS } = {}) {
+    this.checkIntervalMs = checkIntervalMs;
     this.intervalHandle = null;
+    this.workerProcess = null;
     this.isRefreshing = false;
     this.lastRefreshTime = null;
     this.refreshCount = 0;
+    this.lastWorkerDuration = null;
   }
 
-  // Initial load: populate caches on server start
-  async initialize() {
-    console.log('🔄 CacheRefresher: Initializing...');
+  // Light init: just load whatever is already in the cache files (instant)
+  initialize() {
+    console.log('[CacheRefresher] Loading existing cache (no heavy work)...');
 
-    // If aggregate cache has valid (non-expired) data, use it
-    if (!aggregateCache.isExpired() && aggregateCache.hasData()) {
-      console.log(`✅ CacheRefresher: Aggregate cache valid (age: ${aggregateCache.getAgeMinutes()}min)`);
-      // Also populate fileCache from aggregate for backward compat
-      this._syncToFileCache(aggregateCache.getStale());
-      return;
-    }
-
-    // If aggregate has stale data, serve it while we refresh
     if (aggregateCache.hasData()) {
-      console.log(`⏳ CacheRefresher: Aggregate cache stale (age: ${aggregateCache.getAgeMinutes()}min), serving stale while refreshing...`);
-      this._syncToFileCache(aggregateCache.getStale());
-      // Refresh in background
-      this.refresh().catch(err => console.error('Background refresh failed:', err.message));
-      return;
-    }
+      const age = aggregateCache.getAgeMinutes();
+      const expired = aggregateCache.isExpired();
+      console.log(`[CacheRefresher] Aggregate cache loaded (age: ${age}min, expired: ${expired})`);
 
-    // No data at all - must compute fresh
-    console.log('📡 CacheRefresher: No cached data, computing fresh...');
-    await this.refresh();
+      // Sync to fileCache for backward compat
+      this._syncToFileCache(aggregateCache.getStale());
+
+      if (expired) {
+        console.log('[CacheRefresher] Cache expired, spawning worker to refresh...');
+        this.spawnWorker();
+      }
+    } else {
+      console.log('[CacheRefresher] No cached data found, spawning worker...');
+      this.spawnWorker();
+    }
   }
 
-  // Start the background refresh interval
+  // Start periodic check interval
   startBackgroundRefresh() {
     if (this.intervalHandle) {
-      console.log('[CacheRefresher] Background refresh already running');
+      console.log('[CacheRefresher] Background check already running');
       return;
     }
 
-    const intervalMin = Math.round(this.refreshIntervalMs / 60000);
-    console.log(`🔁 CacheRefresher: Background refresh started (every ${intervalMin} min)`);
+    const intervalMin = Math.round(this.checkIntervalMs / 60000);
+    console.log(`🔁 CacheRefresher: Background check started (every ${intervalMin} min)`);
 
-    this.intervalHandle = setInterval(async () => {
-      console.log(`[CacheRefresher] Periodic check (aggregate age: ${aggregateCache.getAgeMinutes()}min, expired: ${aggregateCache.isExpired()})`);
+    this.intervalHandle = setInterval(() => {
+      // Re-read from file in case worker updated it
+      aggregateCache.reload();
 
-      if (aggregateCache.isExpired()) {
-        console.log('[CacheRefresher] Cache expired, triggering refresh...');
-        await this.refresh();
+      const age = aggregateCache.getAgeMinutes();
+      const expired = aggregateCache.isExpired();
+      console.log(`[CacheRefresher] Periodic check (age: ${age}min, expired: ${expired})`);
+
+      if (expired && !this.isRefreshing) {
+        console.log('[CacheRefresher] Cache expired, spawning worker...');
+        this.spawnWorker();
+      } else if (this.isRefreshing) {
+        console.log('[CacheRefresher] Worker already running, skipping');
       } else {
-        console.log('[CacheRefresher] Cache still valid, skipping refresh');
+        // Sync fresh data to fileCache
+        this._syncToFileCache(aggregateCache.getStale());
+        console.log('[CacheRefresher] Cache valid, no action needed');
       }
-    }, this.refreshIntervalMs);
+    }, this.checkIntervalMs);
   }
 
-  // Stop the background refresh
-  stop() {
-    if (this.intervalHandle) {
-      clearInterval(this.intervalHandle);
-      this.intervalHandle = null;
-      console.log('[CacheRefresher] Background refresh stopped');
-    }
-  }
-
-  // Recompute all company data and update both caches
-  async refresh() {
+  // Spawn worker.js as a separate child process
+  spawnWorker() {
     if (this.isRefreshing) {
-      console.log('[CacheRefresher] Already refreshing, skipping...');
+      console.log('[CacheRefresher] Worker already running, skipping spawn');
       return;
     }
 
     this.isRefreshing = true;
-    const startTime = Date.now();
-    console.log('[CacheRefresher] 🔄 Refreshing all company data...');
+    console.log(`[CacheRefresher] � Spawning worker process: ${WORKER_PATH}`);
 
     try {
-      const aggregator = new DataAggregator({ scrapeTranscripts: this.scrapeTranscripts });
-      const aggregateData = {};
-      let successCount = 0;
-      let failedCount = 0;
+      this.workerProcess = fork(WORKER_PATH, [], {
+        stdio: ['ignore', 'pipe', 'pipe', 'ipc']
+      });
 
-      for (const ticker of Object.keys(TICKER_TO_CIK)) {
-        try {
-          const data = await aggregator.getCompanyData(ticker);
-          if (data) {
-            aggregateData[ticker] = data;
-            fileCache.set(ticker, data);
-            const secQ = data.coverage.financial.sec;
-            const staticQ = data.coverage.financial.static;
-            const scraped = data.coverage.transcript.scraped;
-            const sysDefault = data.coverage.transcript.systemDefault;
-            console.log(`  ✓ ${ticker} (${secQ} SEC + ${staticQ} static | ${scraped} scraped, ${sysDefault} default)`);
-            successCount++;
-          } else {
-            failedCount++;
-            console.error(`  ✗ ${ticker} - no data returned`);
-          }
-        } catch (err) {
-          failedCount++;
-          console.error(`  ✗ ${ticker} failed: ${err.message}`);
+      // Pipe worker stdout/stderr to server console with prefix
+      this.workerProcess.stdout.on('data', (data) => {
+        process.stdout.write(data.toString());
+      });
+      this.workerProcess.stderr.on('data', (data) => {
+        process.stderr.write(data.toString());
+      });
+
+      // Listen for completion message from worker
+      this.workerProcess.on('message', (msg) => {
+        if (msg.type === 'refresh_complete') {
+          this.lastRefreshTime = new Date().toISOString();
+          this.refreshCount++;
+          this.lastWorkerDuration = msg.duration;
+          console.log(`[CacheRefresher] Worker completed refresh #${this.refreshCount} (${msg.successCount} success, ${msg.failedCount} failed, ${msg.duration}s)`);
+
+          // Reload caches from files written by worker
+          aggregateCache.reload();
+          this._syncToFileCache(aggregateCache.getStale());
         }
-      }
+      });
 
-      // Update aggregate cache
-      aggregateCache.set(aggregateData);
+      this.workerProcess.on('exit', (code) => {
+        this.isRefreshing = false;
+        this.workerProcess = null;
+        if (code === 0) {
+          console.log('[CacheRefresher] Worker process exited successfully');
+          // Reload caches from files
+          aggregateCache.reload();
+          this._syncToFileCache(aggregateCache.getStale());
+        } else {
+          console.error(`[CacheRefresher] Worker process exited with code ${code}`);
+        }
+      });
 
-      const duration = Math.round((Date.now() - startTime) / 1000);
-      this.lastRefreshTime = new Date().toISOString();
-      this.refreshCount++;
-
-      console.log(`[CacheRefresher] ✅ Refresh #${this.refreshCount} complete: ${successCount} success, ${failedCount} failed (${duration}s)`);
+      this.workerProcess.on('error', (err) => {
+        this.isRefreshing = false;
+        this.workerProcess = null;
+        console.error('[CacheRefresher] Worker process error:', err.message);
+      });
     } catch (err) {
-      console.error('[CacheRefresher] ❌ Refresh failed:', err.message);
-    } finally {
       this.isRefreshing = false;
+      console.error('[CacheRefresher] Failed to spawn worker:', err.message);
     }
   }
 
-  // Sync aggregate data into fileCache (for backward compat)
+  // Stop background check and kill worker if running
+  stop() {
+    if (this.intervalHandle) {
+      clearInterval(this.intervalHandle);
+      this.intervalHandle = null;
+      console.log('[CacheRefresher] Background check stopped');
+    }
+    if (this.workerProcess) {
+      this.workerProcess.kill();
+      this.workerProcess = null;
+      this.isRefreshing = false;
+      console.log('[CacheRefresher] Worker process killed');
+    }
+  }
+
+  // Sync aggregate data into fileCache
   _syncToFileCache(aggregateData) {
     if (!aggregateData) return;
     for (const [ticker, data] of Object.entries(aggregateData)) {
@@ -145,10 +171,12 @@ class CacheRefresher {
   getStatus() {
     return {
       isRefreshing: this.isRefreshing,
+      workerPid: this.workerProcess?.pid || null,
       lastRefreshTime: this.lastRefreshTime,
+      lastWorkerDuration: this.lastWorkerDuration,
       refreshCount: this.refreshCount,
-      refreshIntervalMs: this.refreshIntervalMs,
-      refreshIntervalMinutes: Math.round(this.refreshIntervalMs / 60000),
+      checkIntervalMs: this.checkIntervalMs,
+      checkIntervalMinutes: Math.round(this.checkIntervalMs / 60000),
       backgroundRunning: this.intervalHandle !== null,
       aggregateCache: aggregateCache.getStats(),
       fileCache: fileCache.getStats()
@@ -158,6 +186,5 @@ class CacheRefresher {
 
 // Singleton
 export const cacheRefresher = new CacheRefresher({
-  refreshIntervalMs: DEFAULT_REFRESH_INTERVAL_MS,
-  scrapeTranscripts: true
+  checkIntervalMs: DEFAULT_CHECK_INTERVAL_MS
 });

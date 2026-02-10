@@ -108,6 +108,11 @@ class AggregateCache {
     return company.quarters.find(q => q.quarter === quarter) || null;
   }
 
+  // Re-read from file (picks up data written by worker process)
+  reload() {
+    this._loadFromFile();
+  }
+
   hasData() {
     return this.memCache !== null && Object.keys(this.memCache).length > 0;
   }

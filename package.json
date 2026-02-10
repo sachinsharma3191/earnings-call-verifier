@@ -9,7 +9,9 @@
     "build": "npm --prefix ui run build",
     "prefetch": "node scripts/prefetch-on-start.js",
     "dev:with-cache": "npm run dev & sleep 3 && npm run prefetch",
-    "api": "node api/server.js"
+    "api": "node api/server.js",
+    "worker": "node api/worker.js",
+    "worker:watch": "node api/worker.js --watch"
   },
   "devDependencies": {
     "vite": "^7.3.1"

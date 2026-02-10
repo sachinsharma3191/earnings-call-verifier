@@ -1,27 +1,28 @@
-// Server startup: initialize caches and start background refresh
-// - Loads aggregated data into both fileCache and aggregateCache
-// - Starts background process that checks every 30 min
-// - Data expires after 15 min, gets recomputed on next check
+// Server startup: lightweight cache init (NO heavy work)
+// - Loads existing cache files from disk (instant)
+// - Spawns a separate worker process for heavy data aggregation
+// - Starts periodic check every 30 min to re-spawn worker if cache expired
+// - Server is ready to accept requests immediately
 import { cacheRefresher } from './cache/CacheRefresher.js';
 
 let initialized = false;
 
-export async function initializeCache() {
+export function initializeCache() {
   if (initialized) return;
   initialized = true;
 
   try {
-    // 1. Initial load (uses cached data if valid, else computes fresh)
-    await cacheRefresher.initialize();
+    // 1. Load existing cache from disk (instant, no API calls)
+    cacheRefresher.initialize();
 
-    // 2. Start background refresh (checks every 30 min)
+    // 2. Start periodic background check (spawns worker if cache expired)
     cacheRefresher.startBackgroundRefresh();
 
-    console.log('✅ Cache system ready (TTL: 15min, refresh check: 30min)');
+    console.log('✅ Server cache system ready (serves stale data while worker refreshes)');
   } catch (error) {
-    console.error('❌ Cache initialization error:', error.message);
+    console.error('❌ Cache init error:', error.message);
   }
 }
 
-// Auto-start on module load
+// Auto-start on module load (synchronous, non-blocking)
 initializeCache();
