@@ -73,10 +73,10 @@ class APIClient {
   }
 
   // Verification
-  async verifyClaims(claims, ticker, quarter) {
+  async verifyClaims(ticker, quarter, claims) {
     return this.request('/verification/verify', {
       method: 'POST',
-      body: JSON.stringify({ claims, ticker, quarter }),
+      body: JSON.stringify({ ticker, quarter, claims }),
     });
   }
 
