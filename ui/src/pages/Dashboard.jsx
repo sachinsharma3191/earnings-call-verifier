@@ -88,7 +88,7 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
           <div className="text-2xl font-extrabold">{totalCompanies}</div>
           <div className="text-xs text-gray-500 mt-1">S&P 500 constituents</div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card cursor-pointer hover:border-cyan-500/50 transition-all" onClick={() => document.getElementById('companies-section')?.scrollIntoView({ behavior: 'smooth' })}>
           <div className="flex items-center gap-2 mb-2">
             <Clock className="h-4 w-4 text-cyan-400" />
             <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Quarters</span>
@@ -96,7 +96,7 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
           <div className="text-2xl font-extrabold">4</div>
           <div className="text-xs text-gray-500 mt-1">Q1–Q4 2025</div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card cursor-pointer hover:border-cyan-500/50 transition-all" onClick={() => document.getElementById('discrepancies-section')?.scrollIntoView({ behavior: 'smooth' })}>
           <div className="flex items-center gap-2 mb-2">
             <Database className="h-4 w-4 text-cyan-400" />
             <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Data Points</span>
