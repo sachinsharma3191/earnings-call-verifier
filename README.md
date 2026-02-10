@@ -141,11 +141,6 @@ earnings-call-verifier/
 │   ├── transcript_manifest.json # 10x4 transcript URLs with provenance
 │   └── sec_financials.json      # Cached SEC data for offline analysis
 │
-├── scripts/
-│   ├── fetch-transcripts.mjs    # Download transcripts from manifest
-│   ├── batch-verify.mjs         # Batch verification across all 40 calls
-│   ├── sec-10x4.mjs            # Fetch SEC data for 10 companies × 4 quarters
-│   └── generate-coverage-report.mjs  # Generate coverage statistics
 ├── vercel.json                  # Vercel dev/build config
 └── README.md                    # This file
 ```
@@ -201,18 +196,7 @@ GET /api/openapi                        # OpenAPI YAML for Skill registration
 
 ## 🔄 End-to-End Pipeline
 
-### Step 1: Transcript Acquisition
-```bash
-# Fetch transcripts for all 40 earnings calls
-node scripts/fetch-transcripts.mjs
-```
-
-Reads `data/transcript_manifest.json` and downloads transcripts from:
-- Company IR pages (when available)
-- Public transcript publishers (with attribution)
-- Saves to `transcripts/{ticker}/{quarter}.txt`
-
-### Step 2: Claim Extraction (Claude Skill)
+### Step 1: Claim Extraction (Claude Skill)
 
 Use the deployed Claude Skill to extract quantitative claims:
 
@@ -233,20 +217,7 @@ Use the deployed Claude Skill to extract quantitative claims:
 }
 ```
 
-### Step 3: Batch Verification
-```bash
-# Verify all extracted claims against SEC filings
-node scripts/batch-verify.mjs
-```
-
-Processes all 40 earnings calls:
-- Fetches official SEC 10-Q/10-K data
-- Calculates metrics (revenue, margins, income)
-- Compares claimed vs actual values
-- Flags discrepancies and misleading framing
-- Generates verification report
-
-### Step 4: Analysis & Reporting
+### Step 2: Verification & Analysis
 
 View results in the web UI:
 - **Static Mode**: Pre-verified 140 claims across 10 companies
