@@ -34,6 +34,7 @@ class FileCache {
   saveCache(cache) {
     try {
       writeFileSync(this.cacheFile, JSON.stringify(cache, null, 2));
+      console.log('[Cache] Saved successfully');
     } catch (error) {
       console.error('Error saving cache:', error);
     }
@@ -43,14 +44,19 @@ class FileCache {
     const cache = this.loadCache();
     const cached = cache.companies[ticker];
     
-    if (!cached) return null;
+    if (!cached) {
+      console.log(`[Cache] GET ${ticker} - Miss`);
+      return null;
+    }
     
     // Cache expires after 1 hour
     const isExpired = Date.now() - cached.timestamp > 3600000;
     if (isExpired) {
+      console.log(`[Cache] GET ${ticker} - Expired`);
       return null;
     }
     
+    console.log(`[Cache] GET ${ticker} - Hit`);
     return cached.data;
   }
 

@@ -36,25 +36,35 @@ const MOCK_QUARTERS = [
 ];
 
 export default async function handler(req, res) {
+  const startTime = Date.now();
+  
   try {
     const { ticker } = req.query;
+    console.log(`[API] GET /api/companies/${ticker} - Request received`);
+    
     if (!ticker) {
+      console.log(`[API] GET /api/companies/${ticker} - Error: Missing ticker`);
       return res.status(400).json({ error: 'Missing ticker parameter' });
     }
 
     const cik = TICKER_TO_CIK[ticker];
     if (!cik) {
+      console.log(`[API] GET /api/companies/${ticker} - Error: Company not found`);
       return res.status(404).json({ error: 'Company not found' });
     }
 
     // Check cache first
     const cached = fileCache.get(ticker);
     if (cached) {
+      const duration = Date.now() - startTime;
+      console.log(`[API] GET /api/companies/${ticker} - Cache hit (${duration}ms)`);
       return res.status(200).json({
         ...cached,
         data_source: 'file_cache'
       });
     }
+    
+    console.log(`[API] GET /api/companies/${ticker} - Cache miss, fetching from SEC...`);
 
     try {
       const secService = new SECDataService();
@@ -106,11 +116,15 @@ export default async function handler(req, res) {
         };
       });
       
+      const duration = Date.now() - startTime;
+      console.log(`[API] GET /api/companies/${ticker} - Success (${duration}ms) - ${quartersWithSources.length} quarters from SEC`);
+      
       return res.status(200).json({
         ...data,
         quarters: quartersWithSources
       });
     } catch (secError) {
+      console.warn(`[API] GET /api/companies/${ticker} - SEC API failed:`, secError.message);
       // SEC API failed, return mock data with transcript sources
       const quartersWithSources = MOCK_QUARTERS.map(q => {
         const quarterKey = `${q.fiscal_period}-${q.fiscal_year}`;
@@ -125,6 +139,9 @@ export default async function handler(req, res) {
         };
       });
       
+      const duration = Date.now() - startTime;
+      console.log(`[API] GET /api/companies/${ticker} - Fallback (${duration}ms) - Using mock data`);
+      
       return res.status(200).json({
         ticker: ticker,
         company_name: COMPANY_NAMES[ticker] || ticker,
@@ -135,7 +152,8 @@ export default async function handler(req, res) {
       });
     }
   } catch (error) {
-    console.error('Error fetching company:', error);
+    const duration = Date.now() - startTime;
+    console.error(`[API] GET /api/companies/${ticker} - Error (${duration}ms):`, error.message);
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }

@@ -23,13 +23,18 @@ const STATIC_QUARTERS = [
 
 export default async function handler(req, res) {
   const { ticker } = req.query;
+  const startTime = Date.now();
+  
+  console.log(`[API] GET /api/companies/${ticker}/quarters - Request received`);
   
   if (!ticker) {
+    console.log(`[API] GET /api/companies/${ticker}/quarters - Error: Missing ticker`);
     return res.status(400).json({ error: 'Missing ticker parameter' });
   }
 
   const cik = TICKER_TO_CIK[ticker.toUpperCase()];
   if (!cik) {
+    console.log(`[API] GET /api/companies/${ticker}/quarters - Error: Company not found`);
     return res.status(404).json({ error: 'Company not found' });
   }
 
@@ -56,13 +61,16 @@ export default async function handler(req, res) {
       };
     });
     
+    const duration = Date.now() - startTime;
+    console.log(`[API] GET /api/companies/${ticker}/quarters - Success (${duration}ms) - ${quartersWithSources.length} quarters from SEC`);
+    
     return res.status(200).json({
       ticker: ticker.toUpperCase(),
       quarters: quartersWithSources,
       source: 'sec_edgar'
     });
   } catch (error) {
-    console.warn(`SEC API failed for ${ticker}, using static data:`, error);
+    console.warn(`[API] GET /api/companies/${ticker}/quarters - SEC API failed, using static data:`, error.message);
     
     // Add transcript sources to static quarters too
     const quartersWithSources = STATIC_QUARTERS.map(q => {
@@ -79,6 +87,9 @@ export default async function handler(req, res) {
         }
       };
     });
+    
+    const duration = Date.now() - startTime;
+    console.log(`[API] GET /api/companies/${ticker}/quarters - Fallback (${duration}ms) - ${quartersWithSources.length} static quarters`);
     
     return res.status(200).json({
       ticker: ticker.toUpperCase(),

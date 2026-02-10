@@ -19,6 +19,9 @@ const COMPANIES_LIST = [
  * Checks file cache first to avoid multiple API calls
  */
 export default async function handler(req, res) {
+  const startTime = Date.now();
+  console.log(`[API] GET /api/companies - Request received`);
+  
   try {
     // Get all companies with their cached data
     const companiesWithData = COMPANIES_LIST.map(company => {
@@ -50,6 +53,9 @@ export default async function handler(req, res) {
     });
     
     const cachedCount = companiesWithData.filter(c => c.data_source === 'cache').length;
+    const duration = Date.now() - startTime;
+    
+    console.log(`[API] GET /api/companies - Success (${duration}ms) - ${cachedCount}/${companiesWithData.length} cached`);
     
     return res.status(200).json({
       companies: companiesWithData,
@@ -58,7 +64,8 @@ export default async function handler(req, res) {
       cache_coverage: `${cachedCount}/${companiesWithData.length}`
     });
   } catch (error) {
-    console.error('Error fetching companies:', error);
+    const duration = Date.now() - startTime;
+    console.error(`[API] GET /api/companies - Error (${duration}ms):`, error.message);
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }
