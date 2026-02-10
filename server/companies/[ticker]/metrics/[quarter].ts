@@ -1,34 +1,23 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { CompanyController } from '../../../_lib/controllers/CompanyController';
+import { createApiHandler } from '../../../_lib/middleware/apiHandler';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+export default createApiHandler(async (req: VercelRequest, res: VercelResponse) => {
   const { ticker, quarter } = req.query;
+  const controller = new CompanyController();
+  const financials = await controller.getCompanyFinancials(ticker as string);
+  
+  const quarterData = financials.quarters.find(q => 
+    `${q.fiscal_period} ${q.fiscal_year}` === quarter
+  );
 
-  try {
-    const controller = new CompanyController();
-    const financials = await controller.getCompanyFinancials(ticker as string);
-    
-    // Find specific quarter metrics
-    const quarterData = financials.quarters.find(q => 
-      `${q.fiscal_period} ${q.fiscal_year}` === quarter
-    );
-
-    if (!quarterData) {
-      return res.status(404).json({ error: 'Quarter not found' });
-    }
-
-    return res.status(200).json({
-      ticker,
-      quarter,
-      metrics: quarterData
-    });
-  } catch (error: any) {
-    console.error('Error fetching metrics:', error);
-    const statusCode = error.message.includes('Missing') ? 400 : 500;
-    return res.status(statusCode).json({ error: error.message || 'Internal server error' });
+  if (!quarterData) {
+    throw new Error('Quarter not found');
   }
-}
+
+  return {
+    ticker,
+    quarter,
+    metrics: quarterData
+  };
+}, { allowedMethods: ['GET'] });
