@@ -1,7 +1,7 @@
 // Dependency Injection Container - follows Dependency Inversion Principle
-import { FinnhubTranscriptService } from '../services/FinnhubTranscriptService';
-import { SECDataService } from '../services/SECDataService';
-import { ClaimVerificationService } from '../services/ClaimVerificationService';
+import { FinnhubTranscriptService } from '../services/FinnhubTranscriptService.js';
+import { SECDataService } from '../services/SECDataService.js';
+import { ClaimVerificationService } from '../services/ClaimVerificationService.js';
 
 export class ServiceContainer {
   static instance;

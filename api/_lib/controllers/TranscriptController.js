@@ -1,5 +1,5 @@
 // Thin controller - delegates to service layer
-import { ServiceContainer } from '../container/ServiceContainer';
+import { ServiceContainer } from '../container/ServiceContainer.js';
 
 export class TranscriptController {
   constructor() {
