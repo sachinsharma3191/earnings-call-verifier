@@ -4,52 +4,28 @@
 
 Built for Kip Engineering Take-Home Assignment
 
-🎯 **Complete System**: React Frontend + Flask Backend + SEC API Integration
+🎯 **Complete System**: React Frontend + Vercel Serverless API (Node.js + TypeScript) + SEC EDGAR Integration
 
 ---
 
 ## 🚀 Quick Start
 
-### Option 1: Docker Deployment (Recommended)
+### Option 1: Local Dev (Recommended)
 
 ```bash
-docker-compose up --build
-```
-
-This will build and start both frontend and backend services:
-- Frontend: http://localhost:3000
-- Backend: http://localhost:5001
-
-### Option 2: Local Development
-
-```bash
-# Install dependencies and start both services
-./start.sh
-```
-
-This will:
-1. Set up Python virtual environment
-2. Install backend dependencies
-3. Install frontend dependencies
-4. Start backend API (port 5001)
-5. Start frontend dev server (port 3000)
-
-### Option 3: Manual Setup
-
-#### Backend (Server)
-```bash
-cd server
-python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python3 app.py
-```
-
-#### Frontend (UI)
-```bash
-cd ui
 npm install
-npm run dev
+npx vercel dev
+```
+
+This starts a single local server that serves:
+
+- Frontend UI (Vite/React)
+- Backend API routes under `/api/*` (Vercel serverless functions)
+
+### Option 2: Build
+
+```bash
+npm run build
 ```
 
 ---
@@ -67,10 +43,10 @@ npm run dev
                  │ HTTP/REST API
                  ▼
 ┌─────────────────────────────────────────────────────────┐
-│                    Flask Backend                         │
-│  • API Routes (companies, claims, verification)         │
-│  • Services (SEC, extraction, verification)             │
-│  • Rate limiting & caching                              │
+│           Vercel Serverless API (Node + TS)              │
+│  • API Routes (companies, verification, openapi)        │
+│  • SEC EDGAR fetch + metric calculations                │
+│  • Deterministic verification logic                     │
 └────────────────┬────────────────────────────────────────┘
                  │ HTTPS
                  ▼
@@ -88,6 +64,13 @@ npm run dev
 
 ```
 earnings-call-verifier/
+├── server/                       # Vercel serverless API (source of truth)
+│   ├── health.ts
+│   ├── openapi.ts
+│   ├── companies/
+│   ├── verification/
+│   └── _lib/                      # SEC + verification logic
+│
 ├── ui/                           # Frontend React application
 │   ├── src/
 │   │   ├── App.jsx              # Main application
@@ -104,23 +87,9 @@ earnings-call-verifier/
 │   ├── nginx.conf               # Nginx configuration for Docker
 │   └── vite.config.js
 │
-├── server/                       # Backend Flask application
-│   ├── app.py                   # Flask application
-│   ├── requirements.txt         # Python dependencies
-│   ├── api/                     # API routes
-│   │   ├── companies.py         # Company endpoints
-│   │   ├── claims.py            # Claim extraction
-│   │   └── verification.py      # Verification endpoints
-│   ├── services/                # Business logic
-│   │   ├── sec_service.py       # SEC EDGAR integration
-│   │   ├── claim_extractor.py   # Claim extraction
-│   │   └── verification_service.py # Verification logic
-│   └── README.md                # Backend documentation
-│
-├── docker-compose.yml           # Docker orchestration
-├── Dockerfile.frontend          # Frontend Docker image
-├── Dockerfile.server           # Backend Docker image
-├── start.sh                     # Local development script
+├── data/                        # Transcript manifest (URLs) for batch runs
+├── scripts/                     # Transcript fetch + batch verification scripts
+├── vercel.json                  # Vercel dev/build config
 └── README.md                    # This file
 ```
 
@@ -144,26 +113,21 @@ GET /api/health
 
 ### Companies
 ```
-GET  /api/companies/                    # List all companies
+GET  /api/companies                     # List all companies
 GET  /api/companies/{ticker}            # Get company financials
 GET  /api/companies/{ticker}/quarters   # Get available quarters
 GET  /api/companies/{ticker}/metrics/{quarter}  # Get calculated metrics
 ```
 
-### Claims
-```
-POST /api/claims/extract                # Extract claims from transcript
-GET  /api/claims/sample/{ticker}/{quarter}  # Get sample claims
-```
-
 ### Verification
 ```
 POST /api/verification/verify           # Verify claims against SEC data
-POST /api/verification/verify-transcript  # End-to-end: extract + verify
-GET  /api/verification/statistics       # Overall statistics
 ```
 
-See [backend/README.md](backend/README.md) for detailed API documentation.
+### OpenAPI (Claude Skill)
+```
+GET /api/openapi                        # OpenAPI YAML for Skill registration
+```
 
 ---
 
@@ -182,7 +146,7 @@ MIT License - See LICENSE file
 Built by Claude (Anthropic) for Kip Engineering Take-Home Assignment
 
 **Time to Build**: ~12 hours
-- 4 hours: Backend (Python verification tools)
+- 4 hours: Backend (Node/TypeScript + SEC verification)
 - 6 hours: Frontend (React application)
 - 2 hours: Documentation and polish
 
@@ -201,9 +165,9 @@ Built by Claude (Anthropic) for Kip Engineering Take-Home Assignment
 ## 📞 Questions?
 
 This demonstrates:
-- ✅ Full-stack development (React + Python)
+- ✅ Full-stack development (React + Node.js/TypeScript)
 - ✅ Real data integration (SEC EDGAR)
-- ✅ LLM-powered features (claim extraction)
+- ✅ Claude Skill integration for LLM claim extraction
 - ✅ Production-ready code (clean, documented, deployed)
 - ✅ Data visualization (charts, analytics)
 - ✅ Modern UX (responsive, interactive)
