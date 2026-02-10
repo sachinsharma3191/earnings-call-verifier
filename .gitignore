@@ -10,9 +10,6 @@ node_modules/
 /dist
 /build
 
-# Vercel generated serverless folder (generated from /server at build time)
-/api/
-
 # UI build output (built inside /ui)
 /ui/dist/
 
