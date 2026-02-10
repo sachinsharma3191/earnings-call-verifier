@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { TrendingUp, BarChart3, Search, Info } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import CompanyDetail from './pages/CompanyDetail';
@@ -8,46 +8,13 @@ import LegacyCompanyDetail from './legacy/pages/CompanyDetail';
 import LegacyClaimExplorer from './legacy/pages/ClaimExplorer';
 import { companiesData as legacyCompaniesData } from './legacy/data/verificationData';
 import About from './pages/About';
-import { apiClient } from './utils/apiClient';
+import { useCompanies } from './context/CompaniesContext';
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [mode, setMode] = useState('static'); // 'static' or 'live'
-  const [companies, setCompanies] = useState([]);
-  const [loadingCompanies, setLoadingCompanies] = useState(true);
-  const [companiesError, setCompaniesError] = useState(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setLoadingCompanies(true);
-      setCompaniesError(null);
-      try {
-        const list = await apiClient.getCompanies();
-        const basicCompanies = (list?.companies || []).map((c) => ({
-          ticker: c.ticker,
-          name: c.name,
-          cik: c.cik,
-          quarters: [],
-          latestQuarter: 'Q3 2024', // Default - will load on demand
-          financials: null
-        }));
-
-        if (!cancelled) setCompanies(basicCompanies);
-      } catch (e) {
-        if (!cancelled) setCompaniesError(e?.message || 'Failed to load companies');
-      } finally {
-        if (!cancelled) setLoadingCompanies(false);
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { companies, loading: loadingCompanies, error: companiesError } = useCompanies();
 
   const navigation = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
