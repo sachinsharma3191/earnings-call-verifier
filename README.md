@@ -40,14 +40,44 @@ npm run build
 
 ### Transcript Sourcing Strategy
 
-This implementation covers **10 public companies** across their **last 4 quarters** (40 total data points), following a transparent and practical approach to transcript acquisition:
+This implementation covers **10 public companies** across their **last 4 quarters** (40 total data points), following a transparent and practical approach to transcript acquisition with explicit source attribution.
 
-#### Source Hierarchy
+#### Source Attribution Policy
 
-1. **Primary Source**: Company Investor Relations pages (official transcripts when available)
-2. **Secondary Sources**: Public transcript publishers with clear attribution:
-   - The Motley Fool (transcripts.fool.com)
-   - Yahoo Finance (finance.yahoo.com)
+**Transcript Sources**: All earnings call transcripts are sourced from publicly accessible publishers with explicit citation and provenance tracking:
+- **The Motley Fool** (transcripts.fool.com)
+- **Yahoo Finance** (finance.yahoo.com)
+- **Investing.com**
+- **Seeking Alpha** (when publicly available)
+
+**Verification Standard**: All quantitative claims are verified against official **SEC EDGAR filings** (10-Q, 10-K) regardless of transcript source. SEC EDGAR serves as the single source of truth for financial data verification.
+
+#### Fallback Policy for Missing Transcripts
+
+When a specific company/quarter transcript is missing or gated, the following fallback strategy is applied:
+
+**Option A - Primary**: Use alternative public transcript source with clear citation
+**Option B - Fallback**: Use SEC filing MD&A sections as proxy documents (clearly labeled)
+**Option C - Last Resort**: Skip quarter and explicitly document coverage gap
+
+**Current Implementation**: Hybrid approach (B+C)
+- Proxy documents (10-Q/10-K MD&A) are used when full transcripts are unavailable
+- All proxy documents are clearly labeled to distinguish from full earnings call transcripts
+- Coverage gaps are explicitly tracked and reported via `/api/transcripts/sources` endpoint
+
+#### Coverage Statistics
+
+Access real-time coverage statistics via API:
+```bash
+GET /api/transcripts/sources
+```
+
+Returns:
+- Total coverage percentage
+- Full transcripts available
+- Proxy documents used
+- Coverage gaps
+- Source attribution for each company/quarter
    - Investing.com
    - Seeking Alpha (seekingalpha.com)
 3. **Fallback**: 10-Q/10-K MD&A sections (clearly labeled as proxy when used)

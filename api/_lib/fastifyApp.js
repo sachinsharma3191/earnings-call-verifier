@@ -22,8 +22,14 @@ async function buildApp() {
       info: {
         title: "Earnings Call Verifier API",
         version: "2.0.0",
-        description: "Verify quantitative claims from earnings calls against SEC EDGAR financial data."
-      }
+        description: "Verify quantitative claims from earnings calls against SEC EDGAR financial data. Includes transcript source management with fallback policies for comprehensive coverage across 10 companies × 4 quarters."
+      },
+      tags: [
+        { name: "health", description: "Health check endpoints" },
+        { name: "companies", description: "Company financial data endpoints" },
+        { name: "transcripts", description: "Transcript source management and attribution" },
+        { name: "verification", description: "Claim verification endpoints" }
+      ]
     }
   });
 
@@ -99,41 +105,31 @@ async function buildApp() {
   });
 
   app.post("/api/verification/verify", async (req, reply) => {
-    const data = req.body ?? {};
-    const claims = data.claims ?? [];
-    const ticker = data.ticker;
-    const quarter = data.quarter;
+    const { ticker, quarter, claims } = req.body;
 
-    if (!claims?.length || !ticker || !quarter) {
+    if (!ticker || !quarter || !claims || !Array.isArray(claims)) {
       reply.code(400);
-      return { error: "Missing required fields: claims, ticker, quarter" };
+      return { error: "Missing required fields: ticker, quarter, claims[]" };
     }
 
-    const financials = await getCompanyFinancials(ticker.toUpperCase(), 4);
+    const financials = await getCompanyFinancials(ticker.toUpperCase(), 8);
     if (!financials) {
       reply.code(404);
-      return { error: "Unable to fetch SEC data", ticker, quarter };
+      return { error: `Company ${ticker} not found` };
     }
 
-    const qData = findQuarterData(financials.quarters, quarter);
-    if (!qData) {
+    const quarterData = findQuarterData(financials.quarters, quarter);
+    if (!quarterData) {
       reply.code(404);
-      return {
-        error: `Quarter ${quarter} not found in SEC data`,
-        ticker,
-        quarter,
-        available_quarters: financials.quarters.map((q) => q.fiscal_period ?? "Unknown")
-      };
+      return { error: `Quarter ${quarter} not found for ${ticker}` };
     }
 
-    const metrics = calculateMetrics(qData);
-    const verifiedClaims = claims.map((c) => verifySingleClaim(c, metrics));
+    const verifiedClaims = claims.map((claim) => verifySingleClaim(claim, quarterData));
     const summary = calculateSummary(verifiedClaims);
 
     return {
       ticker: ticker.toUpperCase(),
       quarter,
-      company_name: financials.company_name,
       total_claims: verifiedClaims.length,
       summary,
       claims: verifiedClaims,
