@@ -43,7 +43,7 @@ class APIClient {
 
   // Companies
   async getCompanies() {
-    return this.request('/companies/');
+    return this.request('/companies');
   }
 
   async getCompany(ticker, quarters = 4) {

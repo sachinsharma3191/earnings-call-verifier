@@ -1,42 +1,66 @@
-import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, Calendar, TrendingUp, User } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Calendar, Database } from 'lucide-react';
+import { apiClient } from '../utils/apiClient';
 
 function CompanyDetail({ company, onBack }) {
-  const [selectedQuarter, setSelectedQuarter] = useState(company.latestQuarter);
-  const verification = company.verifications[selectedQuarter];
+  const ticker = company?.ticker;
+  const [quarters, setQuarters] = useState(company?.quarters || []);
+  const [selectedQuarter, setSelectedQuarter] = useState(company?.latestQuarter || company?.quarters?.[0] || '');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [metrics, setMetrics] = useState(null);
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'accurate':
-        return <CheckCircle className="h-5 w-5 text-green-400" />;
-      case 'discrepant':
-        return <XCircle className="h-5 w-5 text-red-400" />;
-      default:
-        return <AlertTriangle className="h-5 w-5 text-yellow-400" />;
+  useEffect(() => {
+    let cancelled = false;
+    async function loadQuarters() {
+      if (!ticker) return;
+      try {
+        const resp = await apiClient.getCompanyQuarters(ticker);
+        const q = (resp?.quarters || []).map((x) => x.quarter);
+        if (!cancelled && q.length) {
+          setQuarters(q);
+          if (!selectedQuarter) setSelectedQuarter(q[0]);
+        }
+      } catch (e) {
+        // non-fatal
+      }
     }
-  };
+    loadQuarters();
+    return () => {
+      cancelled = true;
+    };
+  }, [ticker]);
 
-  const getStatusBadge = (status, flag, severity) => {
-    if (status === 'accurate') {
-      return <span className="badge-success">VERIFIED</span>;
+  useEffect(() => {
+    let cancelled = false;
+    async function loadMetrics() {
+      if (!ticker || !selectedQuarter) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const resp = await apiClient.getQuarterMetrics(ticker, selectedQuarter);
+        if (!cancelled) setMetrics(resp);
+      } catch (e) {
+        if (!cancelled) setError(e?.message || 'Failed to load metrics');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
-    if (status === 'discrepant') {
-      const severityColors = {
-        high: 'bg-red-500/20 text-red-300 border-red-500/30',
-        moderate: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-        low: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
-      };
-      const flagText = flag === 'high_discrepancy' ? 'HIGH DISCREPANCY' : 
-                      flag === 'optimistic' ? 'OPTIMISTIC' : 'DISCREPANT';
-      return <span className={`badge border ${severityColors[severity]}`}>{flagText}</span>;
-    }
-    return <span className="badge-neutral">UNVERIFIABLE</span>;
-  };
+    loadMetrics();
+    return () => {
+      cancelled = true;
+    };
+  }, [ticker, selectedQuarter]);
 
-  const accuracyColor = 
-    verification.accuracyScore >= 70 ? 'text-green-400' :
-    verification.accuracyScore >= 50 ? 'text-yellow-400' :
-    'text-red-400';
+  const cards = useMemo(() => {
+    const m = metrics?.calculated_metrics || {};
+    return [
+      { label: 'Revenue', value: m.revenue_billions != null ? `$${m.revenue_billions.toFixed(2)}B` : '—' },
+      { label: 'Net Income', value: m.net_income_billions != null ? `$${m.net_income_billions.toFixed(2)}B` : '—' },
+      { label: 'Gross Margin', value: m.gross_margin_pct != null ? `${m.gross_margin_pct.toFixed(2)}%` : '—' },
+      { label: 'Operating Margin', value: m.operating_margin_pct != null ? `${m.operating_margin_pct.toFixed(2)}%` : '—' }
+    ];
+  }, [metrics]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -52,7 +76,6 @@ function CompanyDetail({ company, onBack }) {
           <h2 className="text-3xl font-bold">{company.name}</h2>
           <div className="flex items-center flex-wrap gap-3 mt-2">
             <span className="text-gray-400">{company.ticker}</span>
-            <span className="px-3 py-1 bg-gray-700 rounded-full text-sm">{company.sector}</span>
             <span className="text-gray-500 text-sm">CIK: {company.cik}</span>
           </div>
         </div>
@@ -66,7 +89,7 @@ function CompanyDetail({ company, onBack }) {
             <span className="text-sm font-medium">Select Quarter:</span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {company.quarters.map((quarter) => (
+            {quarters.map((quarter) => (
               <button
                 key={quarter}
                 onClick={() => setSelectedQuarter(quarter)}
@@ -83,142 +106,38 @@ function CompanyDetail({ company, onBack }) {
         </div>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards (SEC metrics) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="stat-card">
-          <div className="text-gray-400 text-sm mb-1">Total Claims</div>
-          <div className="text-3xl font-bold">{verification.totalClaims}</div>
-          <p className="text-xs text-gray-500 mt-1">Analyzed for {selectedQuarter}</p>
-        </div>
-        <div className="stat-card border-green-500/30">
-          <div className="text-gray-400 text-sm mb-1">Accurate</div>
-          <div className="text-3xl font-bold text-green-400">{verification.accurate}</div>
-          <p className="text-xs text-gray-500 mt-1">Within tolerance</p>
-        </div>
-        <div className="stat-card border-red-500/30">
-          <div className="text-gray-400 text-sm mb-1">Discrepant</div>
-          <div className="text-3xl font-bold text-red-400">{verification.discrepant}</div>
-          <p className="text-xs text-gray-500 mt-1">Flagged issues</p>
-        </div>
-        <div className="stat-card border-purple-500/30">
-          <div className="text-gray-400 text-sm mb-1">Accuracy Score</div>
-          <div className={`text-3xl font-bold ${accuracyColor}`}>
-            {verification.accuracyScore}%
+        {cards.map((c) => (
+          <div key={c.label} className="stat-card">
+            <div className="text-gray-400 text-sm mb-1">{c.label}</div>
+            <div className="text-3xl font-bold">{c.value}</div>
+            <p className="text-xs text-gray-500 mt-1">{selectedQuarter}</p>
           </div>
-          <p className="text-xs text-gray-500 mt-1">Verifiable claims</p>
-        </div>
+        ))}
       </div>
 
-      {/* Accuracy Gauge */}
       <div className="card p-6">
         <h3 className="text-xl font-semibold mb-4 flex items-center">
-          <TrendingUp className="h-5 w-5 mr-2 text-blue-400" />
-          Accuracy Analysis
+          <Database className="h-5 w-5 mr-2 text-blue-400" />
+          SEC Filing Metrics
         </h3>
-        <div className="relative h-12 bg-gray-700 rounded-full overflow-hidden">
-          <div 
-            className="absolute h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-1000 ease-out"
-            style={{ width: `${verification.accuracyScore}%` }}
-          />
-          <div className="absolute inset-0 flex items-center justify-center text-sm font-medium">
-            {verification.accurate} out of {verification.totalClaims} verifiable claims accurate
-          </div>
-        </div>
-        <div className="mt-4 text-sm text-gray-400">
-          Tolerance thresholds: ±5% for dollar amounts, ±2 percentage points for margins
-        </div>
-      </div>
 
-      {/* Claims List */}
-      <div className="card p-6">
-        <h3 className="text-xl font-semibold mb-6">Detailed Claim Analysis</h3>
-        <div className="space-y-4">
-          {verification.claims.map((claim) => (
-            <div 
-              key={claim.id}
-              className={`p-6 rounded-lg border transition-all hover:shadow-lg ${
-                claim.status === 'accurate' 
-                  ? 'bg-green-900/10 border-green-500/30 hover:border-green-500/50' 
-                  : claim.status === 'discrepant'
-                  ? 'bg-red-900/10 border-red-500/30 hover:border-red-500/50'
-                  : 'bg-gray-700/30 border-gray-600 hover:border-gray-500'
-              }`}
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  {getStatusIcon(claim.status)}
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4 text-gray-400" />
-                      <span className="font-semibold text-white">{claim.speaker}</span>
-                      <span className="text-gray-500">•</span>
-                      <span className="text-sm text-gray-400">{claim.role}</span>
-                    </div>
-                    <div className="text-xs text-gray-400 mt-1">{claim.metric}</div>
-                  </div>
-                </div>
-                {getStatusBadge(claim.status, claim.flag, claim.severity)}
-              </div>
+        {loading && <div className="text-gray-400">Loading metrics...</div>}
+        {error && <div className="text-red-300">{error}</div>}
 
-              {/* Claim Text */}
-              <div className="bg-gray-800/50 rounded-lg p-4 mb-4">
-                <p className="text-gray-300 italic leading-relaxed">"{claim.text}"</p>
-              </div>
-
-              {/* Comparison Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <div className="text-xs text-gray-400 mb-1 font-medium">Claimed Value</div>
-                  <div className="font-semibold text-lg">
-                    {claim.unit === 'billion' ? '$' : ''}{claim.claimed}{claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-400 mb-1 font-medium">SEC Filing</div>
-                  <div className="font-semibold text-lg text-green-400">
-                    {claim.unit === 'billion' ? '$' : ''}{claim.actual}{claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-400 mb-1 font-medium">Difference</div>
-                  <div className={`font-semibold text-lg ${
-                    claim.status === 'discrepant' ? 'text-red-400' : 'text-gray-300'
-                  }`}>
-                    {claim.difference > 0 ? '+' : ''}{claim.difference.toFixed(2)}{claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? 'pts' : ''}
-                    <span className="text-sm ml-1">
-                      ({claim.percentDiff > 0 ? '+' : ''}{claim.percentDiff.toFixed(2)}%)
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Severity Indicator */}
-              {claim.status === 'discrepant' && (
-                <div className="mt-4 pt-4 border-t border-gray-600">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Severity Level:</span>
-                    <span className={`font-medium ${
-                      claim.severity === 'high' ? 'text-red-400' :
-                      claim.severity === 'moderate' ? 'text-orange-400' :
-                      'text-yellow-400'
-                    }`}>
-                      {claim.severity.toUpperCase()}
-                    </span>
-                  </div>
-                  {claim.flag && (
-                    <div className="flex items-center justify-between text-sm mt-2">
-                      <span className="text-gray-400">Flag:</span>
-                      <span className="text-orange-400 font-medium">
-                        {claim.flag.replace('_', ' ').toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
+        {!loading && !error && metrics && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="bg-gray-800/50 rounded-lg p-4">
+              <div className="text-xs text-gray-400 mb-2 font-medium">Raw (SEC) values</div>
+              <pre className="text-xs text-gray-300 overflow-auto">{JSON.stringify(metrics.raw_data, null, 2)}</pre>
             </div>
-          ))}
-        </div>
+            <div className="bg-gray-800/50 rounded-lg p-4">
+              <div className="text-xs text-gray-400 mb-2 font-medium">Calculated metrics</div>
+              <pre className="text-xs text-gray-300 overflow-auto">{JSON.stringify(metrics.calculated_metrics, null, 2)}</pre>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Methodology Notes */}
@@ -233,19 +152,7 @@ function CompanyDetail({ company, onBack }) {
           </li>
           <li className="flex items-start">
             <span className="text-blue-400 mr-2 mt-0.5">•</span>
-            <span><strong>Tolerance Thresholds:</strong> ±5% for dollar amounts, ±2 percentage points for margins/percentages</span>
-          </li>
-          <li className="flex items-start">
-            <span className="text-blue-400 mr-2 mt-0.5">•</span>
-            <span><strong>Optimistic Flag:</strong> Claimed value exceeds actual by more than tolerance threshold</span>
-          </li>
-          <li className="flex items-start">
-            <span className="text-blue-400 mr-2 mt-0.5">•</span>
-            <span><strong>High Discrepancy:</strong> Deviation exceeds 10% threshold</span>
-          </li>
-          <li className="flex items-start">
-            <span className="text-blue-400 mr-2 mt-0.5">•</span>
-            <span><strong>Unverifiable Claims:</strong> Typically segment-level data not available in summary filings</span>
+            <span><strong>Claims:</strong> Use Claude Skill to extract claims from transcripts, then verify via /api/verification/verify</span>
           </li>
         </ul>
       </div>

@@ -1,14 +1,67 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TrendingUp, BarChart3, Search, Info } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import CompanyDetail from './pages/CompanyDetail';
 import ClaimExplorer from './pages/ClaimExplorer';
 import About from './pages/About';
-import { companiesData } from './data/verificationData';
+import { apiClient } from './utils/apiClient';
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [selectedCompany, setSelectedCompany] = useState(null);
+  const [companies, setCompanies] = useState([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
+  const [companiesError, setCompaniesError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoadingCompanies(true);
+      setCompaniesError(null);
+      try {
+        const list = await apiClient.getCompanies();
+        const tickers = (list?.companies || []).map((c) => c.ticker);
+
+        const detailed = await Promise.all(
+          tickers.map(async (ticker) => {
+            try {
+              const fin = await apiClient.getCompany(ticker, 4);
+              return {
+                ticker: fin.ticker,
+                name: fin.company_name,
+                cik: fin.cik,
+                quarters: (fin.quarters || []).map((q) => `${q.fiscal_period} ${q.fiscal_year}`),
+                latestQuarter: fin.quarters?.[0] ? `${fin.quarters[0].fiscal_period} ${fin.quarters[0].fiscal_year}` : null,
+                financials: fin
+              };
+            } catch (e) {
+              return {
+                ticker,
+                name: ticker,
+                cik: null,
+                quarters: [],
+                latestQuarter: null,
+                financials: null,
+                error: e?.message || 'Failed to load company'
+              };
+            }
+          })
+        );
+
+        if (!cancelled) setCompanies(detailed);
+      } catch (e) {
+        if (!cancelled) setCompaniesError(e?.message || 'Failed to load companies');
+      } finally {
+        if (!cancelled) setLoadingCompanies(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const navigation = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -21,7 +74,9 @@ function App() {
       case 'dashboard':
         return (
           <Dashboard 
-            companies={companiesData}
+            companies={companies}
+            loading={loadingCompanies}
+            error={companiesError}
             onSelectCompany={(company) => {
               setSelectedCompany(company);
               setCurrentView('company');
@@ -36,11 +91,11 @@ function App() {
           />
         );
       case 'explorer':
-        return <ClaimExplorer companies={companiesData} />;
+        return <ClaimExplorer companies={companies} />;
       case 'about':
         return <About />;
       default:
-        return <Dashboard companies={companiesData} />;
+        return <Dashboard companies={companies} loading={loadingCompanies} error={companiesError} />;
     }
   };
 

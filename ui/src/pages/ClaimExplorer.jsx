@@ -1,48 +1,70 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Filter, CheckCircle, XCircle, AlertTriangle, User, Building } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Search, Filter, CheckCircle, XCircle, AlertTriangle, User, Building, PlayCircle } from 'lucide-react';
+import { apiClient } from '../utils/apiClient';
 
 function ClaimExplorer({ companies }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [companyFilter, setCompanyFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
 
-  // Flatten all claims
-  const allClaims = useMemo(() => {
-    const claims = [];
-    companies.forEach(company => {
-      Object.entries(company.verifications).forEach(([quarter, verification]) => {
-        verification.claims.forEach(claim => {
-          claims.push({
-            ...claim,
-            companyTicker: company.ticker,
-            companyName: company.name,
-            companySector: company.sector,
-            quarter
-          });
-        });
-      });
-    });
-    return claims;
+  const [selectedTicker, setSelectedTicker] = useState(companies?.[0]?.ticker || '');
+  const [availableQuarters, setAvailableQuarters] = useState([]);
+  const [selectedQuarter, setSelectedQuarter] = useState('');
+
+  const [claimsJson, setClaimsJson] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState(null);
+  const [verificationResult, setVerificationResult] = useState(null);
+
+  useEffect(() => {
+    if (!selectedTicker && companies?.length) setSelectedTicker(companies[0].ticker);
   }, [companies]);
 
-  // Filter claims
+  useEffect(() => {
+    let cancelled = false;
+    async function loadQuarters() {
+      if (!selectedTicker) return;
+      try {
+        const resp = await apiClient.getCompanyQuarters(selectedTicker);
+        const q = (resp?.quarters || []).map((x) => x.quarter);
+        if (!cancelled) {
+          setAvailableQuarters(q);
+          setSelectedQuarter((prev) => prev || q?.[0] || '');
+        }
+      } catch (e) {
+        if (!cancelled) setAvailableQuarters([]);
+      }
+    }
+    loadQuarters();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTicker]);
+
+  const verifiedClaims = useMemo(() => {
+    const claims = verificationResult?.claims || [];
+    return claims.map((c, idx) => ({
+      ...c,
+      id: c.id || `${selectedTicker}_${selectedQuarter}_${idx}`,
+      companyTicker: selectedTicker,
+      companyName: companies?.find((x) => x.ticker === selectedTicker)?.name || selectedTicker,
+      quarter: selectedQuarter
+    }));
+  }, [verificationResult, selectedTicker, selectedQuarter, companies]);
+
   const filteredClaims = useMemo(() => {
-    return allClaims.filter(claim => {
-      const matchesSearch = 
-        claim.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        claim.speaker.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        claim.metric.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        claim.companyName.toLowerCase().includes(searchTerm.toLowerCase());
-      
+    return verifiedClaims.filter((claim) => {
+      const matchesSearch =
+        (claim.text || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (claim.speaker || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (claim.metric || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (claim.companyName || '').toLowerCase().includes(searchTerm.toLowerCase());
+
       const matchesStatus = statusFilter === 'all' || claim.status === statusFilter;
-      const matchesCompany = companyFilter === 'all' || claim.companyTicker === companyFilter;
-      const matchesSeverity = severityFilter === 'all' || 
-        (claim.status === 'discrepant' && claim.severity === severityFilter);
-      
-      return matchesSearch && matchesStatus && matchesCompany && matchesSeverity;
+      const matchesSeverity = severityFilter === 'all' || (claim.status === 'discrepant' && claim.severity === severityFilter);
+      return matchesSearch && matchesStatus && matchesSeverity;
     });
-  }, [allClaims, searchTerm, statusFilter, companyFilter, severityFilter]);
+  }, [verifiedClaims, searchTerm, statusFilter, severityFilter]);
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -60,7 +82,94 @@ function ClaimExplorer({ companies }) {
       {/* Header */}
       <div>
         <h2 className="text-3xl font-bold mb-2">Claims Explorer</h2>
-        <p className="text-gray-400">Search and filter all extracted claims across companies and quarters</p>
+        <p className="text-gray-400">Paste Claude-extracted claims JSON and verify against SEC filings</p>
+      </div>
+
+      {/* Run Verification */}
+      <div className="card p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm text-gray-400 mb-2 font-medium">Company</label>
+            <select
+              value={selectedTicker}
+              onChange={(e) => {
+                setSelectedTicker(e.target.value);
+                setVerificationResult(null);
+                setVerifyError(null);
+              }}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {companies.map((company) => (
+                <option key={company.ticker} value={company.ticker}>
+                  {company.ticker} - {company.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-2 font-medium">Quarter</label>
+            <select
+              value={selectedQuarter}
+              onChange={(e) => {
+                setSelectedQuarter(e.target.value);
+                setVerificationResult(null);
+                setVerifyError(null);
+              }}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {availableQuarters.map((q) => (
+                <option key={q} value={q}>{q}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-end">
+            <button
+              onClick={async () => {
+                setVerifying(true);
+                setVerifyError(null);
+                setVerificationResult(null);
+                try {
+                  const parsed = claimsJson?.trim() ? JSON.parse(claimsJson) : [];
+                  const claims = Array.isArray(parsed) ? parsed : (parsed.claims || []);
+                  const resp = await apiClient.verifyClaims(claims, selectedTicker, selectedQuarter);
+                  setVerificationResult(resp);
+                } catch (e) {
+                  setVerifyError(e?.message || 'Verification failed');
+                } finally {
+                  setVerifying(false);
+                }
+              }}
+              disabled={!selectedTicker || !selectedQuarter || verifying}
+              className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-400 rounded-lg font-medium transition-colors flex items-center justify-center"
+            >
+              <PlayCircle className="h-5 w-5 mr-2" />
+              {verifying ? 'Verifying...' : 'Verify Claims'}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-sm text-gray-400 mb-2 font-medium">Claims JSON (from Claude Skill)</label>
+          <textarea
+            value={claimsJson}
+            onChange={(e) => setClaimsJson(e.target.value)}
+            rows={8}
+            placeholder='Paste an array of claims here: [{"metric":"Revenue","claimed":29.1,"unit":"billion","text":"..."}]'
+            className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {verifyError && <div className="mt-3 text-sm text-red-300">{verifyError}</div>}
+          {verificationResult?.summary && (
+            <div className="mt-3 text-sm text-gray-300">
+              Summary:
+              <span className="ml-2 text-green-400">accurate {verificationResult.summary.accurate}</span>
+              <span className="ml-2 text-red-400">discrepant {verificationResult.summary.discrepant}</span>
+              <span className="ml-2 text-gray-400">unverifiable {verificationResult.summary.unverifiable}</span>
+              <span className="ml-2 text-blue-300">accuracy {verificationResult.summary.accuracyScore}%</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -97,21 +206,7 @@ function ClaimExplorer({ companies }) {
           </div>
 
           {/* Company Filter */}
-          <div>
-            <label className="block text-sm text-gray-400 mb-2 font-medium">Company</label>
-            <select
-              value={companyFilter}
-              onChange={(e) => setCompanyFilter(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Companies</option>
-              {companies.map(company => (
-                <option key={company.ticker} value={company.ticker}>
-                  {company.ticker} - {company.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div />
         </div>
 
         {/* Severity Filter (only for discrepant) */}
@@ -139,14 +234,13 @@ function ClaimExplorer({ companies }) {
         {/* Results Count */}
         <div className="mt-4 pt-4 border-t border-gray-600 flex items-center justify-between">
           <span className="text-sm text-gray-400">
-            Showing <span className="font-semibold text-white">{filteredClaims.length}</span> of <span className="font-semibold text-white">{allClaims.length}</span> claims
+            Showing <span className="font-semibold text-white">{filteredClaims.length}</span> of <span className="font-semibold text-white">{verifiedClaims.length}</span> claims
           </span>
-          {(searchTerm || statusFilter !== 'all' || companyFilter !== 'all' || severityFilter !== 'all') && (
+          {(searchTerm || statusFilter !== 'all' || severityFilter !== 'all') && (
             <button
               onClick={() => {
                 setSearchTerm('');
                 setStatusFilter('all');
-                setCompanyFilter('all');
                 setSeverityFilter('all');
               }}
               className="text-sm text-blue-400 hover:text-blue-300 transition-colors"

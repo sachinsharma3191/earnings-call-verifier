@@ -1,7 +1,7 @@
 {
   "framework": "vite",
   "installCommand": "npm --prefix ui install",
-  "devCommand": "npm --prefix ui run dev -- --port $PORT",
+  "devCommand": "npm run sync:api && npm --prefix ui run dev -- --port $PORT",
   "buildCommand": "npm run build",
   "outputDirectory": "ui/dist",
   "rewrites": [
