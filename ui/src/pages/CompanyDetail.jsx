@@ -146,11 +146,11 @@ function CompanyDetail({ company, onBack }) {
 
           const filingRows = [
             { label: 'Revenue', value: fmt(raw.Revenues), icon: '💰' },
-            { label: 'Net Income', value: fmt(raw.NetIncome), icon: '📈' },
+            { label: 'Cost of Revenue', value: fmt(raw.CostOfRevenue), icon: '�' },
             { label: 'Gross Profit', value: fmt(raw.GrossProfit), icon: '📊' },
+            { label: 'Operating Expenses', value: fmt(raw.OperatingExpenses), icon: '�' },
             { label: 'Operating Income', value: fmt(raw.OperatingIncome), icon: '🏢' },
-            { label: 'Cost of Revenue', value: fmt(raw.CostOfRevenue), icon: '📦' },
-            { label: 'Operating Expenses', value: fmt(raw.OperatingExpenses), icon: '💼' },
+            { label: 'Net Income', value: fmt(raw.NetIncome), icon: '�' },
             { label: 'Earnings Per Share', value: raw.EPS != null && raw.EPS !== 0 ? `$${Number(raw.EPS).toFixed(2)}` : '—', icon: '🔢' },
           ];
 

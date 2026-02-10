@@ -46,17 +46,26 @@ export class SECDataService {
     const facts = data.facts?.['us-gaap'] || {};
     const quartersMap = new Map();
 
-    const revenueData1 = facts.Revenues?.units?.USD || [];
-    const revenueData2 = facts.RevenueFromContractWithCustomerExcludingAssessedTax?.units?.USD || [];
-    const revenueData = [...revenueData1, ...revenueData2];
-
-    // console.log(`[SECDataService] Revenue data points found: ${revenueData.length}`);
+    // Revenue: try all known XBRL names (including bank-specific InterestIncomeExpenseNet)
+    const revenueSources = [
+      'Revenues',
+      'RevenueFromContractWithCustomerExcludingAssessedTax',
+      'RevenueFromContractWithCustomerIncludingAssessedTax',
+      'SalesRevenueNet',
+      'InterestIncomeExpenseNet'
+    ];
+    let revenueData = [];
+    for (const src of revenueSources) {
+      const items = facts[src]?.units?.USD || [];
+      if (items.length > 0) {
+        revenueData = [...revenueData, ...items];
+      }
+    }
 
     revenueData.forEach((item) => {
       let quarter = null;
       let year = null;
 
-      // Strategy: Prioritize 'fp' (Fiscal Period) and 'fy' (Fiscal Year)
       if (item.fp && item.fy) {
         if (item.fp.startsWith('Q')) {
           quarter = item.fp;
@@ -64,7 +73,6 @@ export class SECDataService {
         }
       }
 
-      // Fallback: 'frame' field
       if (!quarter && item.frame) {
         const frameMatch = item.frame.match(/Q(\d)$/);
         if (frameMatch) {
@@ -74,62 +82,74 @@ export class SECDataService {
       }
 
       if (quarter && year && item.end && item.start) {
-
-        // Duration check: Ensure it's a quarterly figure (~90 days), not YTD (~270 days)
         const startDate = new Date(item.start);
         const endDate = new Date(item.end);
         const durationDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
 
-        // Allow some flexibility (75-105 days)
-        if (durationDays < 75 || durationDays > 105) {
-          return;
-        }
+        if (durationDays < 75 || durationDays > 105) return;
+        if (year !== 2025) return;
 
-        // Filter: include data from fiscal year 2025 only
-        if (year !== 2025) {
-          return;
-        }
+        const key = `Q${quarter.replace('Q', '')}-${year}`;
 
-        const key = `Q${quarter.replace('Q', '')}-${year}`; // Format: Q4-2025
-
-        // Logic: prefer the latest filing date for corrections
         if (!quartersMap.has(key) || new Date(item.filed) > new Date(quartersMap.get(key).filed)) {
+          const end = item.end;
+          const revenue = item.val / 1e9;
+
+          const netIncome = this.extractMetricMulti(facts, [
+            'NetIncomeLoss', 'NetIncomeLossAvailableToCommonStockholdersBasic', 'ProfitLoss'
+          ], end) / 1e9;
+
+          const grossProfit = this.extractMetric(facts, 'GrossProfit', end) / 1e9;
+
+          const operatingIncome = this.extractMetricMulti(facts, [
+            'OperatingIncomeLoss',
+            'IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest'
+          ], end) / 1e9;
+
+          const costOfRevenue = this.extractMetricMulti(facts, [
+            'CostOfRevenue', 'CostOfGoodsAndServicesSold', 'CostOfGoodsSold'
+          ], end) / 1e9;
+
+          let operatingExpenses = this.extractMetricMulti(facts, [
+            'OperatingExpenses', 'OperatingCostsAndExpenses', 'CostsAndExpenses', 'NoninterestExpense'
+          ], end) / 1e9;
+
+          const eps = this.extractMetricMulti(facts, [
+            'EarningsPerShareDiluted', 'EarningsPerShareBasic'
+          ], end, true);
+
+          // Computed fallbacks for missing data
+          const computedGrossProfit = grossProfit || (revenue && costOfRevenue ? revenue - costOfRevenue : 0);
+
           quartersMap.set(key, {
-            end_date: item.end,
+            end_date: end,
             fiscal_year: year,
             fiscal_period: quarter,
             filed: item.filed,
             form: item.form,
-            Revenues: item.val / 1e9,
-            NetIncome: this.extractMetric(facts, 'NetIncomeLoss', item.end) / 1e9,
-            GrossProfit: this.extractMetric(facts, 'GrossProfit', item.end) / 1e9,
-            OperatingIncome: this.extractMetric(facts, 'OperatingIncomeLoss', item.end) / 1e9,
-            CostOfRevenue: this.extractMetric(facts, 'CostOfRevenue', item.end) / 1e9,
-            OperatingExpenses: this.extractMetric(facts, 'OperatingExpenses', item.end) / 1e9,
-            EPS: this.extractMetric(facts, 'EarningsPerShareBasic', item.end)
+            Revenues: revenue,
+            NetIncome: netIncome,
+            GrossProfit: computedGrossProfit,
+            OperatingIncome: operatingIncome,
+            CostOfRevenue: costOfRevenue,
+            OperatingExpenses: operatingExpenses,
+            EPS: eps
           });
         }
       }
     });
 
     const quarters = Array.from(quartersMap.values());
-
-    // Sort descending by date
     return quarters.sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
   }
 
-  extractMetric(facts, metricName, endDate) {
-    const metricData = facts[metricName]?.units?.USD || [];
-    // We strictly match endDate, but we should probably also check start date/duration to avoid YTD matching logic issues for other metrics?
-    // Usually matching 'end' is enough if the main loop filtered the quarter correctly, 
-    // BUT what if 'NetIncome' has both Q3 (3mo) and Q3 (9mo) ending on same date?
-    // We should pick the one with similar duration or smallest duration?
-    // For now, let's pick the one < 105 days.
+  extractMetric(facts, metricName, endDate, isPerShare = false) {
+    const units = isPerShare ? (facts[metricName]?.units?.['USD/shares'] || []) : (facts[metricName]?.units?.USD || []);
 
-    const candidates = metricData.filter((item) => item.end === endDate);
+    const candidates = units.filter((item) => item.end === endDate);
     if (candidates.length === 0) return 0;
 
-    // Find the one with ~90 days duration
+    // Find the one with ~90 days duration (quarterly, not YTD)
     const quarterly = candidates.find(item => {
       if (!item.start) return false;
       const d = (new Date(item.end) - new Date(item.start)) / (1000 * 60 * 60 * 24);
@@ -137,5 +157,14 @@ export class SECDataService {
     });
 
     return quarterly?.val || candidates[0]?.val || 0;
+  }
+
+  // Try multiple XBRL concept names, return first non-zero match
+  extractMetricMulti(facts, metricNames, endDate, isPerShare = false) {
+    for (const name of metricNames) {
+      const val = this.extractMetric(facts, name, endDate, isPerShare);
+      if (val !== 0) return val;
+    }
+    return 0;
   }
 }

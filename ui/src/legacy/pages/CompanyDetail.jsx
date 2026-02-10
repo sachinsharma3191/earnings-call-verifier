@@ -1,20 +1,43 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle, XCircle, AlertTriangle, Calendar, TrendingUp, User } from 'lucide-react';
 
+const statusIconMap = {
+  'accurate': <CheckCircle className="h-5 w-5 text-green-400" />,
+  'discrepant': <XCircle className="h-5 w-5 text-red-400" />,
+  'default': <AlertTriangle className="h-5 w-5 text-yellow-400" />,
+};
+
+const severityColors = {
+  high: 'bg-red-500/20 text-red-300 border-red-500/30',
+  moderate: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+  low: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+};
+
+const discrepantFlagTextMap = {
+  high_discrepancy: 'HIGH DISCREPANCY',
+  optimistic: 'OPTIMISTIC',
+  default: 'DISCREPANT',
+};
+
+const statusBadgeMap = {
+  accurate: () => <span className="badge-success">VERIFIED</span>,
+
+  discrepant: (severity, flag) => (
+    <span className={`badge border ${severityColors[severity]}`}>
+      {discrepantFlagTextMap[flag] || discrepantFlagTextMap.default}
+    </span>
+  ),
+
+  default: () => <span className="badge-neutral">UNVERIFIABLE</span>,
+};
+
+
 function CompanyDetail({ company, onBack }) {
   const [selectedQuarter, setSelectedQuarter] = useState(company.latestQuarter);
   const verification = company.verifications[selectedQuarter];
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'accurate':
-        return <CheckCircle className="h-5 w-5 text-green-400" />;
-      case 'discrepant':
-        return <XCircle className="h-5 w-5 text-red-400" />;
-      default:
-        return <AlertTriangle className="h-5 w-5 text-yellow-400" />;
-    }
-  };
+  const getStatusIcon = (status) => statusIconMap[status] || statusIconMap.default;
+  
 
   const getStatusBadge = (status, flag, severity) => {
     if (status === 'accurate') {
