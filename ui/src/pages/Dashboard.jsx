@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, ChevronRight, Database, Building2, AlertTriangle, Search, ArrowUpDown } from 'lucide-react';
+import { FileText, ChevronRight, Database, Building2, AlertTriangle, Search, ArrowUpDown, RefreshCw } from 'lucide-react';
 import { apiClient } from '../utils/apiClient';
 
 const SORT_OPTIONS = [
@@ -26,21 +26,23 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
   const [discSortAsc, setDiscSortAsc] = useState(false);
   const [discrepancies, setDiscrepancies] = useState([]);
   const [discLoading, setDiscLoading] = useState(true);
+  const [discRefreshing, setDiscRefreshing] = useState(false);
+
+  const fetchDiscrepancies = async () => {
+    setDiscRefreshing(true);
+    try {
+      const resp = await apiClient.getTopDiscrepancies(10);
+      setDiscrepancies(resp?.discrepancies || []);
+    } catch (e) {
+      // non-fatal
+    } finally {
+      setDiscLoading(false);
+      setDiscRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    let cancelled = false;
-    async function loadDiscrepancies() {
-      try {
-        const resp = await apiClient.getTopDiscrepancies(10);
-        if (!cancelled) setDiscrepancies(resp?.discrepancies || []);
-      } catch (e) {
-        // non-fatal
-      } finally {
-        if (!cancelled) setDiscLoading(false);
-      }
-    }
-    loadDiscrepancies();
-    return () => { cancelled = true; };
+    fetchDiscrepancies();
   }, []);
 
   const filtered = useMemo(() => {
@@ -177,6 +179,14 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
           <h3 className="text-lg font-semibold flex items-center">
             <AlertTriangle className="h-5 w-5 mr-2 text-yellow-400" />
             <span className="text-red-300">Top Discrepancies Detected</span>
+            <button
+              onClick={fetchDiscrepancies}
+              disabled={discRefreshing}
+              className="ml-3 p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-700 transition-all disabled:opacity-50"
+              title="Refresh discrepancies"
+            >
+              <RefreshCw className={`h-4 w-4 ${discRefreshing ? 'animate-spin' : ''}`} />
+            </button>
           </h3>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="relative flex-1 sm:flex-initial">
@@ -217,7 +227,17 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
         )}
 
         {!discLoading && filteredDisc.length === 0 && !discSearch && (
-          <div className="text-center text-gray-400 py-4">No discrepancies detected yet. Cache may still be loading.</div>
+          <div className="text-center py-6">
+            <p className="text-gray-400 mb-3">No discrepancies detected yet. Cache may still be loading.</p>
+            <button
+              onClick={fetchDiscrepancies}
+              disabled={discRefreshing}
+              className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${discRefreshing ? 'animate-spin' : ''}`} />
+              {discRefreshing ? 'Loading...' : 'Refresh Discrepancies'}
+            </button>
+          </div>
         )}
 
         <div className="space-y-3">
