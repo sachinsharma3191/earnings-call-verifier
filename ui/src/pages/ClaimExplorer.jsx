@@ -61,15 +61,21 @@ function ClaimExplorer({ companies }) {
       return;
     }
     let claims;
-    try {
-      claims = JSON.parse(claimsJson || '[]');
-      if (!Array.isArray(claims) || claims.length === 0) {
-        setVerifyError('Please provide valid claims JSON array');
+    // Auto-use sample claims if no JSON provided
+    if (!claimsJson || claimsJson.trim() === '' || claimsJson.trim() === '[]') {
+      claims = sampleClaims[selectedTicker] || sampleClaims.AAPL;
+      setClaimsJson(JSON.stringify(claims, null, 2));
+    } else {
+      try {
+        claims = JSON.parse(claimsJson);
+        if (!Array.isArray(claims) || claims.length === 0) {
+          claims = sampleClaims[selectedTicker] || sampleClaims.AAPL;
+          setClaimsJson(JSON.stringify(claims, null, 2));
+        }
+      } catch (e) {
+        setVerifyError('Invalid JSON format');
         return;
       }
-    } catch (e) {
-      setVerifyError('Invalid JSON format');
-      return;
     }
     setVerifying(true);
     setVerifyError(null);
@@ -236,7 +242,7 @@ function ClaimExplorer({ companies }) {
               </select>
             </div>
             <button
-              onClick={() => { if (!claimsJson) loadSampleClaims(); handleVerify(); }}
+              onClick={handleVerify}
               disabled={!selectedTicker || !selectedQuarter || verifying}
               className="px-6 py-2.5 rounded-lg font-bold text-sm text-black whitespace-nowrap flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ background: verifying ? '#475569' : 'linear-gradient(135deg, #22d3ee, #6366f1)' }}
