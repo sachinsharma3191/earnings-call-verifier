@@ -185,7 +185,7 @@ Deploying as a Claude Artifact provides free LLM inference for the extraction st
 │                  React Frontend (Vite)                     │
 │  Dashboard · Company Detail · Claims Explorer · About     │
 └──────────────────┬───────────────────────────────────────┘
-                   │  /api/* (Vite proxy → localhost:3000)
+                   │  /api/*
                    ▼
 ┌──────────────────────────────────────────────────────────┐
 │              Fastify API Server (Node.js)                  │
