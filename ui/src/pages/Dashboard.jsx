@@ -15,12 +15,22 @@ const SORT_OPTIONS = [
   { key: 'latestQuarter', label: 'Quarter' },
 ];
 
+const DISC_SORT_OPTIONS = [
+  { key: 'pctDiff', label: '% Diff' },
+  { key: 'ticker', label: 'Ticker' },
+  { key: 'severity', label: 'Severity' },
+  { key: 'metric', label: 'Metric' },
+];
+
 function Dashboard({ companies, loading, error, onSelectCompany }) {
   const totalCompanies = companies?.length || 0;
   const companiesLoaded = companies?.filter((c) => !c.error)?.length || 0;
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState('ticker');
   const [sortAsc, setSortAsc] = useState(true);
+  const [discSearch, setDiscSearch] = useState('');
+  const [discSortKey, setDiscSortKey] = useState('pctDiff');
+  const [discSortAsc, setDiscSortAsc] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -40,12 +50,44 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
     return list;
   }, [companies, search, sortKey, sortAsc]);
 
+  const filteredDisc = useMemo(() => {
+    const q = discSearch.toLowerCase().trim();
+    let list = TOP_DISCREPANCIES.filter((d) => {
+      if (!q) return true;
+      return (
+        d.ticker.toLowerCase().includes(q) ||
+        d.name.toLowerCase().includes(q) ||
+        d.metric.toLowerCase().includes(q) ||
+        d.speaker.toLowerCase().includes(q) ||
+        d.severity.toLowerCase().includes(q)
+      );
+    });
+    list.sort((a, b) => {
+      if (discSortKey === 'pctDiff') {
+        return discSortAsc ? a.pctDiff - b.pctDiff : b.pctDiff - a.pctDiff;
+      }
+      const va = (a[discSortKey] || '').toString().toLowerCase();
+      const vb = (b[discSortKey] || '').toString().toLowerCase();
+      return discSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+    return list;
+  }, [discSearch, discSortKey, discSortAsc]);
+
   const handleSort = (key) => {
     if (sortKey === key) {
       setSortAsc(!sortAsc);
     } else {
       setSortKey(key);
       setSortAsc(true);
+    }
+  };
+
+  const handleDiscSort = (key) => {
+    if (discSortKey === key) {
+      setDiscSortAsc(!discSortAsc);
+    } else {
+      setDiscSortKey(key);
+      setDiscSortAsc(key === 'pctDiff' ? false : true);
     }
   };
 
@@ -102,12 +144,47 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
 
       {/* Top 5 Discrepancies */}
       <div className="card p-6 bg-red-900/5 border-red-500/20">
-        <h3 className="text-lg font-semibold mb-5 flex items-center">
-          <AlertTriangle className="h-5 w-5 mr-2 text-yellow-400" />
-          <span className="text-red-300">Top Discrepancies Detected</span>
-        </h3>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
+          <h3 className="text-lg font-semibold flex items-center">
+            <AlertTriangle className="h-5 w-5 mr-2 text-yellow-400" />
+            <span className="text-red-300">Top Discrepancies Detected</span>
+          </h3>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-initial">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search ticker, metric, speaker..."
+                value={discSearch}
+                onChange={(e) => setDiscSearch(e.target.value)}
+                className="w-full sm:w-56 pl-9 pr-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              {DISC_SORT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => handleDiscSort(opt.key)}
+                  className={`px-3 py-2 text-xs rounded-lg font-medium transition-colors flex items-center gap-1 ${
+                    discSortKey === opt.key
+                      ? 'bg-red-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  {opt.label}
+                  {discSortKey === opt.key && <ArrowUpDown className="h-3 w-3" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {filteredDisc.length === 0 && discSearch && (
+          <div className="text-center text-gray-400 py-4">No discrepancies match "{discSearch}"</div>
+        )}
+
         <div className="space-y-3">
-          {TOP_DISCREPANCIES.map((d) => (
+          {filteredDisc.map((d, idx) => (
             <div
               key={d.rank}
               className="flex items-center justify-between p-4 rounded-lg bg-gray-800/60 border border-gray-700/50 hover:border-gray-600 transition-all"
