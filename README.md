@@ -4,7 +4,7 @@
 
 Built for Kip Engineering Take-Home Assignment
 
-🎯 **Complete System**: React Frontend + Vercel Serverless API (Node.js + TypeScript) + SEC EDGAR Integration
+🎯 **Complete System**: React Frontend + Vercel Serverless API (Node.js) + SEC EDGAR Integration
 
 ---
 
@@ -94,7 +94,7 @@ This implementation covers **10 public companies** across their **last 4 quarter
                  │ HTTP/REST API
                  ▼
 ┌─────────────────────────────────────────────────────────┐
-│           Vercel Serverless API (Node + TS)              │
+│           Vercel Serverless API (Node.js)                │
 │  • API Routes (companies, verification, openapi)        │
 │  • SEC EDGAR fetch + metric calculations                │
 │  • Deterministic verification logic                     │
@@ -115,9 +115,9 @@ This implementation covers **10 public companies** across their **last 4 quarter
 
 ```
 earnings-call-verifier/
-├── server/                       # Vercel serverless API (source of truth)
-│   ├── health.ts
-│   ├── openapi.ts
+├── api/                          # Vercel serverless API (source of truth)
+│   ├── health.js
+│   ├── openapi.js
 │   ├── companies/
 │   ├── verification/
 │   └── _lib/                      # SEC + verification logic
@@ -269,7 +269,7 @@ MIT License - See LICENSE file
 ## 👤 Author
 
 **Time to Build**: ~12 hours
-- 4 hours: Backend (Node/TypeScript + SEC verification)
+- 4 hours: Backend (Node.js + SEC verification)
 - 6 hours: Frontend (React application)
 - 2 hours: Documentation and polish
 
@@ -288,7 +288,7 @@ MIT License - See LICENSE file
 ## 📞 Questions?
 
 This demonstrates:
-- ✅ Full-stack development (React + Node.js/TypeScript)
+- ✅ Full-stack development (React + Node.js)
 - ✅ Real data integration (SEC EDGAR)
 - ✅ Claude Skill integration for LLM claim extraction
 - ✅ Production-ready code (clean, documented, deployed)
