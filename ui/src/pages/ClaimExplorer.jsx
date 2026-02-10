@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, Filter, CheckCircle, XCircle, AlertTriangle, User, Building, PlayCircle, FileText } from 'lucide-react';
+import { Search, Filter, CheckCircle, XCircle, AlertTriangle, User, Building, PlayCircle, FileText, Zap, Shield } from 'lucide-react';
 import { apiClient } from '../utils/apiClient';
 import { getMockClaims, getMockTranscript } from '../data/mockTranscripts';
+import { SEVERITY_CONFIG } from '../data/companyMeta';
 
 const TABS = [
   { id: 'verify', label: 'Verify Claims' },
@@ -445,112 +446,49 @@ function ClaimExplorer({ companies }) {
                     <p className="text-gray-500 text-sm mt-2">Try adjusting your search criteria or clearing filters</p>
                   </div>
                 ) : (
-                  filteredClaims.map((claim) => (
-                    <div
-                      key={claim.id}
-                      className={`card p-6 hover:shadow-xl transition-all ${claim.status === 'discrepant' ? 'border-red-500/30' : ''}`}
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          {getStatusIcon(claim.status)}
-                          <div>
-                            <div className="flex items-center flex-wrap gap-2">
-                              <Building className="h-4 w-4 text-gray-400" />
-                              <span className="font-semibold text-white">{claim.companyTicker}</span>
-                              <span className="text-gray-500">•</span>
-                              <span className="text-gray-400 text-sm">{claim.companyName}</span>
-                              <span className="text-gray-500">•</span>
-                              <span className="text-gray-400 text-sm">{claim.quarter}</span>
-                            </div>
-                            <div className="flex items-center mt-2 space-x-2">
-                              <User className="h-3 w-3 text-gray-500" />
-                              <span className="text-sm text-gray-400">{claim.speaker} ({claim.role})</span>
-                              <span className="text-gray-500">•</span>
-                              <span className="text-sm text-blue-400">{claim.metric}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <span className={`badge ${
-                          claim.status === 'accurate' ? 'badge-success' : claim.status === 'discrepant' ? 'badge-danger' : 'badge-neutral'
-                        }`}>
-                          {claim.status.toUpperCase()}
-                        </span>
-                      </div>
-
-                      <div className="mb-4">
-                        <p className="text-gray-300 leading-relaxed italic">"{claim.text}"</p>
-                        {claim.context && <p className="text-xs text-gray-500 mt-2">Context: {claim.context}</p>}
-                      </div>
-
-                      {(claim.type === 'yoy_percent' || claim.type === 'yoy_growth') ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xs font-semibold px-2 py-0.5 bg-purple-600/30 text-purple-300 rounded">YoY GROWTH</span>
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <div className="text-xs text-gray-400 mb-1 font-medium">Claimed Growth</div>
-                              <div className="font-semibold text-lg">{claim.claimed}%</div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-gray-400 mb-1 font-medium">Actual Growth</div>
-                              <div className="font-semibold text-lg text-green-400">
-                                {claim.actual != null ? `${claim.actual}%` : 'N/A'}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-gray-400 mb-1 font-medium">Difference</div>
-                              <div className={`font-semibold text-lg ${claim.status === 'discrepant' ? 'text-red-400' : 'text-gray-300'}`}>
-                                {claim.difference != null ? `${claim.difference > 0 ? '+' : ''}${claim.difference.toFixed(2)} pts` : 'N/A'}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-gray-400 mb-1 font-medium">Prior Year → Current</div>
-                              <div className="font-semibold text-sm text-gray-300">
-                                {claim.priorValue != null && claim.currentValue != null
-                                  ? `${claim.unit === 'billion' ? '$' : ''}${claim.priorValue}${claim.unit === 'billion' ? 'B' : ''} → ${claim.unit === 'billion' ? '$' : ''}${claim.currentValue}${claim.unit === 'billion' ? 'B' : ''}`
-                                  : 'N/A'}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <div className="text-xs text-gray-400 mb-1 font-medium">Claimed</div>
-                            <div className="font-semibold text-lg">
-                              {claim.unit === 'billion' ? '$' : ''}{claim.claimed}{claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-400 mb-1 font-medium">SEC Filing</div>
-                            <div className="font-semibold text-lg text-green-400">
-                              {claim.unit === 'billion' ? '$' : ''}{claim.actual}{claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-400 mb-1 font-medium">Difference</div>
-                            <div className={`font-semibold text-lg ${claim.status === 'discrepant' ? 'text-red-400' : 'text-gray-300'}`}>
-                              {claim.difference != null ? `${claim.difference > 0 ? '+' : ''}${claim.difference.toFixed(2)}${claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? 'pts' : ''}` : 'N/A'}
-                              {claim.percentDiff != null && <span className="text-xs ml-1">({claim.percentDiff.toFixed(2)}%)</span>}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {claim.flag && (
-                        <div className="mt-4 pt-4 border-t border-gray-600 flex items-center justify-between">
-                          <span className="text-sm text-gray-400">Analysis:</span>
-                          <div className="flex items-center space-x-2">
-                            <span className={`badge ${claim.severity === 'high' ? 'badge-danger' : claim.severity === 'moderate' ? 'badge-warning' : 'badge-neutral'}`}>
-                              {claim.severity} SEVERITY
+                  filteredClaims.map((claim) => {
+                    const sev = SEVERITY_CONFIG[claim.status] || SEVERITY_CONFIG.unverifiable;
+                    const isYoY = claim.type === 'yoy_percent' || claim.type === 'yoy_growth';
+                    const fmtClaimed = isYoY ? `${claim.claimed}%` : `${claim.unit === 'billion' ? '$' : ''}${claim.claimed}${claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}`;
+                    const fmtActual = isYoY ? `${claim.actual}%` : `${claim.unit === 'billion' ? '$' : ''}${claim.actual}${claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}`;
+                    return (
+                      <div key={claim.id} className={`rounded-xl p-4 border ${sev.bg} ${sev.border}`}>
+                        <div className="flex items-start justify-between mb-2 flex-wrap gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${sev.badgeBg} ${sev.text}`}>
+                              {sev.icon} {sev.label}
                             </span>
-                            <span className="badge-warning">{claim.flag.replace('_', ' ').toUpperCase()}</span>
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 font-semibold">{claim.metric}</span>
+                            {isYoY && <span className="text-[10px] px-2 py-0.5 rounded bg-purple-900/30 text-purple-400 font-semibold">YoY</span>}
+                            <span className="text-[10px] text-gray-500">{claim.quarter}</span>
                           </div>
+                          {claim.percentDiff != null && (
+                            <span className={`text-xs font-bold tabular-nums ${sev.text}`}>
+                              {claim.percentDiff > 0 ? '+' : ''}{claim.percentDiff.toFixed(1)}% diff
+                            </span>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))
+                        <p className="text-sm text-gray-200 leading-relaxed mb-2">&quot;{claim.text}&quot;</p>
+                        <div className="text-xs text-gray-400 mb-3">
+                          <strong className="text-gray-300">Speaker:</strong> {claim.speaker} {claim.role ? `(${claim.role})` : ''}
+                        </div>
+                        {claim.actual != null && (
+                          <div className="flex gap-5 px-3 py-2 rounded-lg bg-gray-900/60 text-xs text-gray-400">
+                            <span>Claimed: <strong className="text-white">{fmtClaimed}</strong></span>
+                            <span>SEC Actual: <strong className="text-cyan-400">{fmtActual}</strong></span>
+                          </div>
+                        )}
+                        {claim.flag && (
+                          <p className={`text-xs mt-2 pt-2 border-t border-gray-700/30 italic ${sev.text}`}>
+                            {claim.flag.replace(/_/g, ' ')} — {claim.severity} severity
+                          </p>
+                        )}
+                        {claim.reason && (
+                          <p className="text-xs text-gray-500 mt-1 italic">{claim.reason}</p>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </>
