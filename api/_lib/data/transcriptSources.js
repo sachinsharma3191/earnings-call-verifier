@@ -25,12 +25,11 @@ export const TRANSCRIPT_SOURCES = {
       filed: '2025-05-01'
     },
     'Q1-2025': {
-      available: false,
-      source: 'SEC EDGAR (10-Q MD&A)',
-      url: 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0000320193',
-      type: 'proxy',
-      filed: '2025-02-01',
-      note: 'Using 10-Q MD&A as proxy - transcript not publicly available'
+      available: true,
+      source: 'The Motley Fool',
+      url: 'https://www.fool.com/earnings/call-transcripts/2025/02/01/apple-aapl-q1-2025-earnings-call-transcript/',
+      type: 'transcript',
+      filed: '2025-02-01'
     }
   },
   'NVDA': {

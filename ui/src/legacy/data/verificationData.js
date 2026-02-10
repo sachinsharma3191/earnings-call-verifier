@@ -7,11 +7,11 @@ const baseCompaniesData = [
     name: "Apple Inc.",
     sector: "Technology",
     cik: "0000320193",
-    quarters: ["Q1 2024", "Q2 2024", "Q3 2024", "Q4 2024"],
-    latestQuarter: "Q4 2024",
+    quarters: ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025"],
+    latestQuarter: "Q4 2025",
     verifications: {
-      "Q4 2024": {
-        quarter: "Q4 2024",
+      "Q4 2025": {
+        quarter: "Q4 2025",
         date: "October 31, 2024",
         totalClaims: 10,
         accuracyScore: 40.0,
@@ -88,11 +88,11 @@ const baseCompaniesData = [
     name: "NVIDIA Corporation",
     sector: "Semiconductors",
     cik: "0001045810",
-    quarters: ["Q1 2024", "Q2 2024", "Q3 2024", "Q4 2024"],
-    latestQuarter: "Q4 2024",
+    quarters: ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025"],
+    latestQuarter: "Q4 2025",
     verifications: {
-      "Q4 2024": {
-        quarter: "Q4 2024",
+      "Q4 2025": {
+        quarter: "Q4 2025",
         date: "January 24, 2024",
         totalClaims: 11,
         accuracyScore: 27.3,
@@ -169,11 +169,11 @@ const baseCompaniesData = [
     name: "Tesla Inc.",
     sector: "Automotive",
     cik: "0001318605",
-    quarters: ["Q1 2024", "Q2 2024", "Q3 2024", "Q4 2024"],
-    latestQuarter: "Q4 2024",
+    quarters: ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025"],
+    latestQuarter: "Q4 2025",
     verifications: {
-      "Q4 2024": {
-        quarter: "Q4 2024",
+      "Q4 2025": {
+        quarter: "Q4 2025",
         date: "January 25, 2024",
         totalClaims: 8,
         accuracyScore: 37.5,
@@ -235,11 +235,11 @@ const baseCompaniesData = [
     name: "Microsoft Corporation",
     sector: "Technology",
     cik: "0000789019",
-    quarters: ["Q1 2024", "Q2 2024", "Q3 2024", "Q4 2024"],
-    latestQuarter: "Q4 2024",
+    quarters: ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025"],
+    latestQuarter: "Q4 2025",
     verifications: {
-      "Q4 2024": {
-        quarter: "Q4 2024",
+      "Q4 2025": {
+        quarter: "Q4 2025",
         date: "January 30, 2024",
         totalClaims: 9,
         accuracyScore: 55.6,
@@ -286,11 +286,11 @@ const baseCompaniesData = [
     name: "Alphabet Inc.",
     sector: "Technology",
     cik: "0001652044",
-    quarters: ["Q1 2024", "Q2 2024", "Q3 2024", "Q4 2024"],
-    latestQuarter: "Q4 2024",
+    quarters: ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025"],
+    latestQuarter: "Q4 2025",
     verifications: {
-      "Q4 2024": {
-        quarter: "Q4 2024",
+      "Q4 2025": {
+        quarter: "Q4 2025",
         date: "January 30, 2024",
         totalClaims: 8,
         accuracyScore: 62.5,
@@ -322,11 +322,11 @@ const baseCompaniesData = [
     name: "Amazon.com Inc.",
     sector: "E-commerce",
     cik: "0001018724",
-    quarters: ["Q1 2024", "Q2 2024", "Q3 2024", "Q4 2024"],
-    latestQuarter: "Q4 2024",
+    quarters: ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025"],
+    latestQuarter: "Q4 2025",
     verifications: {
-      "Q4 2024": {
-        quarter: "Q4 2024",
+      "Q4 2025": {
+        quarter: "Q4 2025",
         date: "February 1, 2024",
         totalClaims: 10,
         accuracyScore: 50.0,
@@ -358,11 +358,11 @@ const baseCompaniesData = [
     name: "Meta Platforms Inc.",
     sector: "Social Media",
     cik: "0001326801",
-    quarters: ["Q1 2024", "Q2 2024", "Q3 2024", "Q4 2024"],
-    latestQuarter: "Q4 2024",
+    quarters: ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025"],
+    latestQuarter: "Q4 2025",
     verifications: {
-      "Q4 2024": {
-        quarter: "Q4 2024",
+      "Q4 2025": {
+        quarter: "Q4 2025",
         date: "January 31, 2024",
         totalClaims: 9,
         accuracyScore: 44.4,
@@ -394,11 +394,11 @@ const baseCompaniesData = [
     name: "JPMorgan Chase & Co.",
     sector: "Banking",
     cik: "0000019617",
-    quarters: ["Q1 2024", "Q2 2024", "Q3 2024", "Q4 2024"],
-    latestQuarter: "Q4 2024",
+    quarters: ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025"],
+    latestQuarter: "Q4 2025",
     verifications: {
-      "Q4 2024": {
-        quarter: "Q4 2024",
+      "Q4 2025": {
+        quarter: "Q4 2025",
         date: "January 12, 2024",
         totalClaims: 7,
         accuracyScore: 57.1,
@@ -430,11 +430,11 @@ const baseCompaniesData = [
     name: "Johnson & Johnson",
     sector: "Healthcare",
     cik: "0000200406",
-    quarters: ["Q1 2024", "Q2 2024", "Q3 2024", "Q4 2024"],
-    latestQuarter: "Q4 2024",
+    quarters: ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025"],
+    latestQuarter: "Q4 2025",
     verifications: {
-      "Q4 2024": {
-        quarter: "Q4 2024",
+      "Q4 2025": {
+        quarter: "Q4 2025",
         date: "January 23, 2024",
         totalClaims: 8,
         accuracyScore: 62.5,
@@ -466,11 +466,11 @@ const baseCompaniesData = [
     name: "Walmart Inc.",
     sector: "Retail",
     cik: "0000104169",
-    quarters: ["Q1 2024", "Q2 2024", "Q3 2024", "Q4 2024"],
-    latestQuarter: "Q4 2024",
+    quarters: ["Q1 2025", "Q2 2025", "Q3 2025", "Q4 2025"],
+    latestQuarter: "Q4 2025",
     verifications: {
-      "Q4 2024": {
-        quarter: "Q4 2024",
+      "Q4 2025": {
+        quarter: "Q4 2025",
         date: "February 20, 2024",
         totalClaims: 9,
         accuracyScore: 55.6,
@@ -507,10 +507,10 @@ export const companiesData = baseCompaniesData.map(company => {
       ...company,
       verifications: {
         ...company.verifications,
-        "Q4 2024": {
-          ...company.verifications["Q4 2024"],
-          claims: [...company.verifications["Q4 2024"].claims, ...extraClaims],
-          totalClaims: company.verifications["Q4 2024"].claims.length + extraClaims.length
+        "Q4 2025": {
+          ...company.verifications["Q4 2025"],
+          claims: [...company.verifications["Q4 2025"].claims, ...extraClaims],
+          totalClaims: company.verifications["Q4 2025"].claims.length + extraClaims.length
         }
       }
     };
