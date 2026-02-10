@@ -12,7 +12,7 @@ export class FinnhubTranscriptService {
   async getTranscript(symbol, year, quarter) {
     try {
       const response = await fetch(
-        `${this.baseUrl}/stock/earnings-call-transcripts?symbol=${symbol}`,
+        `${this.baseUrl}/stock/earnings-call-transcripts?symbol=${symbol}&token=${this.apiKey}`,
         {
           headers: {
             'X-Finnhub-Token': this.apiKey
@@ -40,12 +40,7 @@ export class FinnhubTranscriptService {
   async listAvailableTranscripts(symbol) {
     try {
       const response = await fetch(
-        `${this.baseUrl}/stock/earnings-call-transcripts?symbol=${symbol}`,
-        {
-          headers: {
-            'X-Finnhub-Token': this.apiKey
-          }
-        }
+        `${this.baseUrl}/stock/earnings-call-transcripts?symbol=${symbol}&token=${this.apiKey}`
       );
 
       if (!response.ok) {

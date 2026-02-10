@@ -1,5 +1,5 @@
 import { SECDataService } from '../_lib/services/SECDataService.js';
-import { companyCache } from '../_lib/cache/CompanyCache.js';
+import { fileCache } from '../_lib/cache/FileCache.js';
 
 const TICKER_TO_CIK = {
   'AAPL': '0000320193',
@@ -47,11 +47,11 @@ export default async function handler(req, res) {
     }
 
     // Check cache first
-    const cached = companyCache.get(ticker);
+    const cached = fileCache.get(ticker);
     if (cached) {
       return res.status(200).json({
         ...cached,
-        data_source: 'cache'
+        data_source: 'file_cache'
       });
     }
 
@@ -60,8 +60,8 @@ export default async function handler(req, res) {
       const data = await secService.getCompanyFinancials(cik);
       
       // Cache the result
-      companyCache.set(ticker, data);
-      
+      fileCache.set(ticker, data);
+
       // Check if data is recent (within last 2 years)
       const latestYear = data.quarters[0]?.fiscal_year || 0;
       const currentYear = new Date().getFullYear();

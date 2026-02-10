@@ -1,5 +1,5 @@
 import { SECDataService } from '../_lib/services/SECDataService.js';
-import { companyCache } from '../_lib/cache/CompanyCache.js';
+import { fileCache } from '../_lib/cache/FileCache.js';
 
 const TICKER_TO_CIK = {
   'AAPL': '0000320193',
@@ -35,14 +35,6 @@ const MOCK_QUARTERS = [
 ];
 
 export default async function handler(req, res) {
-  if (companyCache.getLoadingStatus()) {
-    return res.status(200).json({ 
-      status: 'loading',
-      message: 'Cache is being populated. Please try again in a few seconds.'
-    });
-  }
-
-  companyCache.setLoading(true);
   
   const results = {
     success: [],
@@ -56,7 +48,7 @@ export default async function handler(req, res) {
     for (const [ticker, cik] of Object.entries(TICKER_TO_CIK)) {
       try {
         // Check if already cached
-        if (companyCache.has(ticker)) {
+        if (fileCache.has(ticker)) {
           results.cached++;
           continue;
         }
@@ -76,10 +68,10 @@ export default async function handler(req, res) {
             quarters: MOCK_QUARTERS,
             data_source: 'mock_fallback'
           };
-          companyCache.set(ticker, mockData);
+          fileCache.set(ticker, mockData);
           results.success.push({ ticker, source: 'mock' });
         } else {
-          companyCache.set(ticker, data);
+          fileCache.set(ticker, data);
           results.success.push({ ticker, source: 'sec' });
         }
         
@@ -94,7 +86,7 @@ export default async function handler(req, res) {
           quarters: MOCK_QUARTERS,
           data_source: 'mock_fallback'
         };
-        companyCache.set(ticker, mockData);
+        fileCache.set(ticker, mockData);
         results.failed.push({ ticker, error: error.message });
       }
     }
@@ -110,7 +102,5 @@ export default async function handler(req, res) {
       status: 'error',
       error: error.message 
     });
-  } finally {
-    companyCache.setLoading(false);
   }
 }
