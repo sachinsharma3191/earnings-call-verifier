@@ -88,6 +88,56 @@ function ClaimExplorer({ companies }) {
     setVerifyError(null);
   };
 
+  const handleVerify = async () => {
+    if (!selectedTicker || !selectedQuarter) {
+      setVerifyError('Please select a company and quarter');
+      return;
+    }
+
+    let claims;
+    try {
+      claims = JSON.parse(claimsJson || '[]');
+      if (!Array.isArray(claims) || claims.length === 0) {
+        setVerifyError('Please provide valid claims JSON array');
+        return;
+      }
+    } catch (e) {
+      setVerifyError('Invalid JSON format');
+      return;
+    }
+
+    setVerifying(true);
+    setVerifyError(null);
+    setVerificationResult(null);
+
+    try {
+      const result = await apiClient.verifyClaims(selectedTicker, selectedQuarter, claims);
+      setVerificationResult(result);
+    } catch (e) {
+      // Fallback to mock claims when API fails
+      const mockClaims = getMockClaims(selectedTicker, selectedQuarter);
+      if (mockClaims && mockClaims.length > 0) {
+        setVerificationResult({
+          ticker: selectedTicker,
+          quarter: selectedQuarter,
+          claims: mockClaims,
+          summary: {
+            total: mockClaims.length,
+            verified: mockClaims.filter(c => c.status === 'verified').length,
+            discrepancies: mockClaims.filter(c => c.status === 'minor_discrepancy').length,
+            failed: mockClaims.filter(c => c.status === 'failed').length
+          },
+          data_source: 'mock_fallback'
+        });
+        setVerifyError('Using sample data - API unavailable');
+      } else {
+        setVerifyError(e?.message || 'Verification failed');
+      }
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   useEffect(() => {
     if (!selectedTicker && companies?.length) setSelectedTicker(companies[0].ticker);
   }, [companies]);
