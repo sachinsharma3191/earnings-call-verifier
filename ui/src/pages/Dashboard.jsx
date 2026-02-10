@@ -238,7 +238,10 @@ function Dashboard({ companies, loading, error, onSelectCompany }) {
           </div>
         )}
 
-        <div className="space-y-3">
+        <div className={`space-y-3 transition-opacity duration-300 ${discRefreshing ? 'opacity-40' : 'opacity-100'}`}>
+          {discRefreshing && filteredDisc.length > 0 && (
+            <div className="text-center text-gray-400 text-sm py-2 animate-pulse">Refreshing data...</div>
+          )}
           {!discLoading && filteredDisc.map((d, idx) => (
             <div
               key={d.rank}
