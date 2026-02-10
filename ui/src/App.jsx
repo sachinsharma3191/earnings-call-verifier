@@ -3,17 +3,12 @@ import { TrendingUp, BarChart3, Search, Info } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import CompanyDetail from './pages/CompanyDetail';
 import ClaimExplorer from './pages/ClaimExplorer';
-import LegacyDashboard from './legacy/pages/Dashboard';
-import LegacyCompanyDetail from './legacy/pages/CompanyDetail';
-import LegacyClaimExplorer from './legacy/pages/ClaimExplorer';
-import { companiesData as legacyCompaniesData } from './legacy/data/verificationData';
 import About from './pages/About';
 import { useCompanies } from './context/CompaniesContext';
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [selectedCompany, setSelectedCompany] = useState(null);
-  const [mode, setMode] = useState('static'); // 'static' or 'live'
   const { companies, loading: loadingCompanies, error: companiesError } = useCompanies();
 
   const navigation = [
@@ -25,17 +20,6 @@ function App() {
   const renderView = () => {
     switch (currentView) {
       case 'dashboard':
-        if (mode === 'static') {
-          return (
-            <LegacyDashboard 
-              companies={legacyCompaniesData}
-              onSelectCompany={(company) => {
-                setSelectedCompany(company);
-                setCurrentView('company');
-              }}
-            />
-          );
-        }
         return (
           <Dashboard 
             companies={companies}
@@ -48,14 +32,6 @@ function App() {
           />
         );
       case 'company':
-        if (mode === 'static') {
-          return (
-            <LegacyCompanyDetail 
-              company={selectedCompany}
-              onBack={() => setCurrentView('dashboard')}
-            />
-          );
-        }
         return (
           <CompanyDetail 
             company={selectedCompany}
@@ -63,16 +39,11 @@ function App() {
           />
         );
       case 'explorer':
-        if (mode === 'static') {
-          return <LegacyClaimExplorer companies={legacyCompaniesData} />;
-        }
         return <ClaimExplorer companies={companies} />;
       case 'about':
         return <About />;
       default:
-        return mode === 'static' 
-          ? <LegacyDashboard companies={legacyCompaniesData} onSelectCompany={(company) => { setSelectedCompany(company); setCurrentView('company'); }} />
-          : <Dashboard companies={companies} loading={loadingCompanies} error={companiesError} onSelectCompany={(company) => { setSelectedCompany(company); setCurrentView('company'); }} />;
+        return <Dashboard companies={companies} loading={loadingCompanies} error={companiesError} onSelectCompany={(company) => { setSelectedCompany(company); setCurrentView('company'); }} />;
     }
   };
 
@@ -92,32 +63,15 @@ function App() {
                   <h1 className="text-xl font-bold gradient-text">
                     Earnings Verifier
                   </h1>
-                  <p className="text-xs text-gray-400">SEC Filing Analysis</p>
+                  <p className="text-xs text-gray-400">SEC EDGAR + Transcript Analysis</p>
                 </div>
               </div>
               
-              {/* Mode Toggle */}
-              <div className="flex items-center space-x-2 px-3 py-1 bg-gray-700/50 rounded-lg border border-gray-600">
-                <button
-                  onClick={() => setMode('static')}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-all ${
-                    mode === 'static'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Static
-                </button>
-                <button
-                  onClick={() => setMode('live')}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-all ${
-                    mode === 'live'
-                      ? 'bg-green-600 text-white'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Live
-                </button>
+              {/* Data Coverage Badge */}
+              <div className="flex items-center space-x-2 px-3 py-1 bg-blue-900/30 rounded-lg border border-blue-700/50">
+                <span className="text-xs font-semibold text-blue-400">
+                  10 Companies × 4 Quarters
+                </span>
               </div>
             </div>
 

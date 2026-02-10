@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, Filter, CheckCircle, XCircle, AlertTriangle, User, Building, PlayCircle } from 'lucide-react';
+import { Search, Filter, CheckCircle, XCircle, AlertTriangle, User, Building, PlayCircle, FileText } from 'lucide-react';
 import { apiClient } from '../utils/apiClient';
 import { getMockClaims, getMockTranscript } from '../data/mockTranscripts';
 
@@ -92,6 +92,8 @@ function ClaimExplorer({ companies }) {
     if (!selectedTicker && companies?.length) setSelectedTicker(companies[0].ticker);
   }, [companies]);
 
+  const [transcriptSource, setTranscriptSource] = useState(null);
+
   useEffect(() => {
     let cancelled = false;
     async function loadQuarters() {
@@ -117,6 +119,30 @@ function ClaimExplorer({ companies }) {
       cancelled = true;
     };
   }, [selectedTicker]);
+
+  // Load transcript source when ticker/quarter changes
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTranscriptSource() {
+      if (!selectedTicker || !selectedQuarter) return;
+      try {
+        const quarterKey = selectedQuarter.replace(' ', '-');
+        const resp = await fetch(`/api/transcripts/sources/${selectedTicker}/${quarterKey}`);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (!cancelled) setTranscriptSource(data.source);
+        }
+      } catch (e) {
+        // Fallback to mock transcript source
+        const mockSource = getMockTranscript(selectedTicker, selectedQuarter);
+        if (!cancelled) setTranscriptSource(mockSource);
+      }
+    }
+    loadTranscriptSource();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTicker, selectedQuarter]);
 
   const verifiedClaims = useMemo(() => {
     const claims = verificationResult?.claims || [];
@@ -249,6 +275,31 @@ function ClaimExplorer({ companies }) {
             </button>
           </div>
         </div>
+
+        {/* Transcript Source Attribution */}
+        {transcriptSource && (
+          <div className="mt-4 p-3 bg-gray-800/50 border border-gray-700 rounded-lg">
+            <div className="flex items-start space-x-2">
+              <FileText className="h-4 w-4 text-blue-400 mt-0.5" />
+              <div className="flex-1">
+                <div className="text-xs text-gray-400 mb-1">Transcript Source</div>
+                <div className="text-sm text-white font-medium">{transcriptSource.source || 'Unknown'}</div>
+                {transcriptSource.type === 'proxy' && (
+                  <div className="mt-1 text-xs text-yellow-400 flex items-center space-x-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    <span>Proxy Document (SEC 10-Q/10-K MD&A) - Full transcript unavailable</span>
+                  </div>
+                )}
+                {transcriptSource.type === 'transcript' && (
+                  <div className="mt-1 text-xs text-green-400">Full earnings call transcript</div>
+                )}
+                {transcriptSource.note && (
+                  <div className="mt-1 text-xs text-gray-500">{transcriptSource.note}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-4">
           <div className="flex items-center justify-between mb-2">
