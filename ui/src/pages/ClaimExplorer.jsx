@@ -213,7 +213,7 @@ function ClaimExplorer({ companies }) {
         {[{ id: 'verify', label: 'Verify Claims', Icon: Zap }, { id: 'search', label: 'Search Results', Icon: Search }].map((tab) => {
           const Icon = tab.Icon;
           return (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id); if (tab.id === 'verify') { setSearchResults([]); setSearchTotal(0); setHasSearched(false); } }}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${
                 activeTab === tab.id
                   ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
@@ -221,8 +221,8 @@ function ClaimExplorer({ companies }) {
               }`}>
               <Icon className="h-3.5 w-3.5" />
               {tab.label}
-              {tab.id === 'search' && verifiedClaims.length > 0 && (
-                <span className="bg-cyan-400 text-black rounded-full px-2 py-0 text-[10px] font-extrabold ml-1">{verifiedClaims.length}</span>
+              {tab.id === 'search' && searchTotal > 0 && (
+                <span className="bg-cyan-400 text-black rounded-full px-2 py-0 text-[10px] font-extrabold ml-1">{searchTotal}</span>
               )}
             </button>
           );
