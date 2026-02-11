@@ -30,14 +30,26 @@ Executives make quantitative claims on earnings calls. Some are accurate, some h
 
 ## Quick Start
 
+### Option 1: View with Pre-built Data (Simplest)
 ```bash
 npm install
+npm run dev          # Vite UI on :5173
+```
+Open [http://localhost:5173](http://localhost:5173)
+
+The app works with pre-built cache data included in the repo.
+
+### Option 2: Full Local Development
+```bash
+# Terminal 1: Start API server
 npm run api          # Fastify server on :3000
+
+# Terminal 2: Start UI (in a new terminal)
 npm run dev          # Vite UI on :5173 (proxies /api → :3000)
+
+# Terminal 3: Run background worker (optional)
 npm run worker       # Pre-fetch SEC data + transcripts into .cache/
 ```
-
-Open [http://localhost:5173](http://localhost:5173)
 
 ---
 
