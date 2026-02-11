@@ -243,15 +243,188 @@ export default function TheWhy() {
             <span className="text-sm font-semibold text-cyan-400">Showing 8 examples</span>
           </div>
         </div>
-        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-6 border border-gray-700 text-center">
+
+        {/* Example Claims Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Example 1 - Accurate */}
+          <div className="bg-gradient-to-br from-green-900/20 to-gray-900/50 rounded-lg p-5 border border-green-700/50">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <span className="text-xs font-semibold text-green-400 bg-green-900/30 px-2 py-1 rounded">ACCURATE</span>
+                <div className="mt-2 text-sm text-gray-400">AAPL • Q4 2025 • CEO</div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-green-400">0.2%</div>
+                <div className="text-xs text-gray-500">difference</div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-300 mb-2">
+              <span className="font-semibold">"Revenue reached $124.3 billion"</span>
+            </p>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-400">Claimed: $124.3B</span>
+              <span className="text-green-400">SEC Filed: $124.3B</span>
+            </div>
+          </div>
+
+          {/* Example 2 - Delta-Threshold */}
+          <div className="bg-gradient-to-br from-pink-900/20 to-gray-900/50 rounded-lg p-5 border border-pink-700/50">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <span className="text-xs font-semibold text-pink-400 bg-pink-900/30 px-2 py-1 rounded">MISLEADING</span>
+                <div className="mt-2 text-sm text-gray-400">TSLA • Q2 2025 • CFO</div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-pink-400">8.2%</div>
+                <div className="text-xs text-gray-500">overstated</div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-300 mb-2">
+              <span className="font-semibold">"Strong growth in operating income"</span> — but SEC shows only 2.1% QoQ increase
+            </p>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-400">Language: "Strong" (expects &gt;10%)</span>
+              <span className="text-pink-400">Actual: 2.1% QoQ</span>
+            </div>
+          </div>
+
+          {/* Example 3 - Cherry-Pick */}
+          <div className="bg-gradient-to-br from-orange-900/20 to-gray-900/50 rounded-lg p-5 border border-orange-700/50">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <span className="text-xs font-semibold text-orange-400 bg-orange-900/30 px-2 py-1 rounded">CHERRY-PICKED</span>
+                <div className="mt-2 text-sm text-gray-400">META • Q3 2025 • CEO</div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-orange-400">-3.8%</div>
+                <div className="text-xs text-gray-500">QoQ hidden</div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-300 mb-2">
+              <span className="font-semibold">"Revenue grew 14% year over year"</span> — omits that QoQ declined 3.8%
+            </p>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-green-400">YoY: +14.0%</span>
+              <span className="text-orange-400">QoQ: -3.8% (not mentioned)</span>
+            </div>
+          </div>
+
+          {/* Example 4 - Accurate */}
+          <div className="bg-gradient-to-br from-green-900/20 to-gray-900/50 rounded-lg p-5 border border-green-700/50">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <span className="text-xs font-semibold text-green-400 bg-green-900/30 px-2 py-1 rounded">ACCURATE</span>
+                <div className="mt-2 text-sm text-gray-400">NVDA • Q4 2025 • CFO</div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-green-400">1.1%</div>
+                <div className="text-xs text-gray-500">difference</div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-300 mb-2">
+              <span className="font-semibold">"Net income of $22.1 billion"</span>
+            </p>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-400">Claimed: $22.1B</span>
+              <span className="text-green-400">SEC Filed: $22.09B</span>
+            </div>
+          </div>
+
+          {/* Example 5 - Metric Conflation */}
+          <div className="bg-gradient-to-br from-cyan-900/20 to-gray-900/50 rounded-lg p-5 border border-cyan-700/50">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <span className="text-xs font-semibold text-cyan-400 bg-cyan-900/30 px-2 py-1 rounded">CONFLATION</span>
+                <div className="mt-2 text-sm text-gray-400">AMZN • Q1 2025 • CEO</div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-cyan-400">18%</div>
+                <div className="text-xs text-gray-500">GAAP gap</div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-300 mb-2">
+              <span className="font-semibold">"Earnings of $12.4B"</span> — uses adjusted EBITDA, GAAP net income was $10.4B
+            </p>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-400">Adjusted: $12.4B</span>
+              <span className="text-cyan-400">GAAP: $10.4B (-18%)</span>
+            </div>
+          </div>
+
+          {/* Example 6 - Omission */}
+          <div className="bg-gradient-to-br from-purple-900/20 to-gray-900/50 rounded-lg p-5 border border-purple-700/50">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <span className="text-xs font-semibold text-purple-400 bg-purple-900/30 px-2 py-1 rounded">OMISSION</span>
+                <div className="mt-2 text-sm text-gray-400">WMT • Q3 2025 • CFO</div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-purple-400">-12%</div>
+                <div className="text-xs text-gray-500">margin drop</div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-300 mb-2">
+              <span className="font-semibold">"Strong revenue growth of 6.2%"</span> — doesn't mention operating margin fell 12%
+            </p>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-green-400">Revenue: +6.2%</span>
+              <span className="text-purple-400">Margin: -12% (omitted)</span>
+            </div>
+          </div>
+
+          {/* Example 7 - Minor Discrepancy */}
+          <div className="bg-gradient-to-br from-yellow-900/20 to-gray-900/50 rounded-lg p-5 border border-yellow-700/50">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <span className="text-xs font-semibold text-yellow-400 bg-yellow-900/30 px-2 py-1 rounded">MINOR</span>
+                <div className="mt-2 text-sm text-gray-400">MSFT • Q2 2025 • CEO</div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-yellow-400">4.3%</div>
+                <div className="text-xs text-gray-500">difference</div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-300 mb-2">
+              <span className="font-semibold">"EPS of $3.00"</span> — SEC filing shows $2.87
+            </p>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-400">Claimed: $3.00</span>
+              <span className="text-yellow-400">SEC Filed: $2.87</span>
+            </div>
+          </div>
+
+          {/* Example 8 - Accurate */}
+          <div className="bg-gradient-to-br from-green-900/20 to-gray-900/50 rounded-lg p-5 border border-green-700/50">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <span className="text-xs font-semibold text-green-400 bg-green-900/30 px-2 py-1 rounded">ACCURATE</span>
+                <div className="mt-2 text-sm text-gray-400">GOOGL • Q4 2025 • CFO</div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-green-400">0.8%</div>
+                <div className="text-xs text-gray-500">difference</div>
+              </div>
+            </div>
+            <p className="text-sm text-gray-300 mb-2">
+              <span className="font-semibold">"Operating income of $31 billion"</span>
+            </p>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-400">Claimed: $31.0B</span>
+              <span className="text-green-400">SEC Filed: $30.97B</span>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA to Explorer */}
+        <div className="text-center mt-6">
           <p className="text-gray-400 mb-4">
-            Explore the <strong className="text-cyan-400">Claims Explorer</strong> tab to see real examples of verified and flagged claims from 10 S&P 500 companies across 4 quarters.
+            Want to explore more? Check out the <strong className="text-cyan-400">Claims Explorer</strong> for interactive verification.
           </p>
           <button
             onClick={() => window.location.href = '#explorer'}
             className="px-6 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors"
           >
-            View Live Examples →
+            Explore All Claims →
           </button>
         </div>
       </section>
