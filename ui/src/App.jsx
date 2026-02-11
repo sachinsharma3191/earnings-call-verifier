@@ -118,19 +118,9 @@ function App() {
               <p className="mt-1">SEC EDGAR API • Official 10-Q/10-K Filings</p>
             </div>
             <div className="text-sm text-gray-400 text-center">
-              <p>Built for Kip Engineering Take-Home Assignment</p>
               <p className="mt-1">Powered by Claude AI • React • Tailwind CSS</p>
             </div>
             <div className="flex items-center space-x-4 text-sm text-gray-400">
-              <a 
-                href="https://github.com/sachinsharma3191/earnings-call-verifier" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-white transition-colors"
-              >
-                GitHub
-              </a>
-              <span>•</span>
               <a 
                 href="https://www.sec.gov" 
                 target="_blank" 
