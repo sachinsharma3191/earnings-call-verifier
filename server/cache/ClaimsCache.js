@@ -12,19 +12,21 @@ const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
 class ClaimsCache {
   constructor() {
     if (isServerless) {
-      // In serverless, try to load from project root .cache (deployed with app)
-      // Fall back to /tmp/.cache for writes
-      const projectCache = join(__dirname, '../../.cache');
-      const tmpCache = join('/tmp', '.cache');
+      // In serverless: read from project root (read-only), write to /tmp (writable)
+      this.readCacheDir = join(__dirname, '../../.cache');
+      this.writeCacheDir = join('/tmp', '.cache');
       
-      // Check if pre-built cache exists in project root
-      const projectCacheFile = join(projectCache, 'claims.json');
-      this.cacheDir = existsSync(projectCacheFile) ? projectCache : tmpCache;
+      // Try to load from project root first, then /tmp
+      const projectCacheFile = join(this.readCacheDir, 'claims.json');
+      const tmpCacheFile = join(this.writeCacheDir, 'claims.json');
+      
+      this.cacheFile = existsSync(projectCacheFile) ? projectCacheFile : tmpCacheFile;
+      this.cacheDir = this.writeCacheDir; // Always write to /tmp
     } else {
       this.cacheDir = join(__dirname, '../../.cache');
+      this.cacheFile = join(this.cacheDir, 'claims.json');
     }
     
-    this.cacheFile = join(this.cacheDir, 'claims.json');
     this.ensureCacheDir();
   }
 
@@ -53,7 +55,11 @@ class ClaimsCache {
   save(data) {
     try {
       data.lastUpdated = new Date().toISOString();
-      writeFileSync(this.cacheFile, JSON.stringify(data, null, 2));
+      // In serverless, always write to /tmp (writable)
+      const writeFile = isServerless 
+        ? join(this.writeCacheDir, 'claims.json')
+        : this.cacheFile;
+      writeFileSync(writeFile, JSON.stringify(data, null, 2));
     } catch (e) {
       console.error('[ClaimsCache] Error saving:', e.message);
     }
