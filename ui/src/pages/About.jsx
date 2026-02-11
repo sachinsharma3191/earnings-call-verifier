@@ -1,5 +1,5 @@
 import React from 'react';
-import { Database, Code, TrendingUp, Shield, Zap, Github } from 'lucide-react';
+import { Database, Code, TrendingUp, Shield, Zap } from 'lucide-react';
 
 function About() {
   return (
@@ -179,17 +179,8 @@ function About() {
 
       {/* Links */}
       <div className="card p-8">
-        <h3 className="text-2xl font-bold mb-6">Project Links</h3>
+        <h3 className="text-2xl font-bold mb-6">Data Sources</h3>
         <div className="flex flex-col space-y-4">
-          <a 
-            href="https://github.com/sachinsharma3191/earnings-call-verifier" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center space-x-3 text-blue-400 hover:text-blue-300 transition-colors"
-          >
-            <Github className="h-5 w-5" />
-            <span>View Source Code on GitHub</span>
-          </a>
           <a 
             href="https://www.sec.gov/edgar" 
             target="_blank" 
@@ -213,7 +204,6 @@ function About() {
 
       {/* Footer Note */}
       <div className="text-center text-sm text-gray-400 py-8 border-t border-gray-700">
-        <p className="font-semibold mb-2">Built for Kip Engineering Take-Home Assignment</p>
         <p>Demonstrating data engineering, LLM integration, and full-stack development skills</p>
       </div>
     </div>
