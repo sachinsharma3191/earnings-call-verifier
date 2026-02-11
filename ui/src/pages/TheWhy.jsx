@@ -1,270 +1,268 @@
-import React from 'react';
-import { Mic, Target, Shield, TrendingUp, AlertTriangle, CheckCircle, Users, Zap, FileText, Database } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mic, Volume2, Zap, Target, ArrowUpDown, Eye, Shield, AlertTriangle } from 'lucide-react';
+
+const DETECTION_STRATEGIES = {
+  delta: {
+    title: 'Delta-Threshold Detection',
+    icon: Target,
+    description: 'When a CEO says "strong growth" on an earnings call, what does "strong" actually mean? We map sentiment words to expected magnitudes. "Strong" or "significant" should mean >10% change. If the SEC filing shows <2% change — that\'s a gap between language intensity and data magnitude.',
+    patterns: [
+      { word: '"Strong" / "Significant"', expected: 'Expects >10% change', flag: 'Flag if <5%', color: 'text-pink-400' },
+      { word: '"Robust" / "Solid"', expected: 'Expects >5% and sustained', flag: 'Flag if <3% or declining', color: 'text-pink-400' },
+      { word: '"Record"', expected: 'Must be literal all-time high', flag: 'Flag if prior quarter was higher', color: 'text-pink-400' },
+      { word: '"Modest" / "Steady"', expected: 'Expects 2-10%', flag: 'Flag if >15% (understating)', color: 'text-pink-400' },
+    ]
+  },
+  cherry: {
+    title: 'Cherry-Pick Detection',
+    icon: ArrowUpDown,
+    description: 'Executives often cite favorable comparisons while hiding unfavorable ones. If they say "revenue grew 15% year over year" but QoQ is negative, that\'s cherry-picking. We check if they\'re citing YoY when QoQ is negative, or using adjusted figures when GAAP tells a different story.',
+    patterns: [
+      { word: 'Citing YoY when QoQ negative', expected: 'Check both comparisons', flag: 'Flag selective timeframe', color: 'text-orange-400' },
+      { word: 'Using adjusted/non-GAAP only', expected: 'Compare to GAAP figures', flag: 'Flag if GAAP diverges >20%', color: 'text-orange-400' },
+      { word: 'Highlighting revenue, hiding margin', expected: 'Check all key metrics', flag: 'Flag omitted metrics', color: 'text-orange-400' },
+    ]
+  },
+  conflation: {
+    title: 'Metric Conflation',
+    icon: ArrowUpDown,
+    description: 'Sometimes executives use adjusted figures when GAAP tells a different story. "We had a great quarter with $2B in earnings" — but is that GAAP net income or adjusted EBITDA? We detect when non-GAAP metrics are presented without GAAP context.',
+    patterns: [
+      { word: 'Adjusted EBITDA vs Net Income', expected: 'Clarify which metric', flag: 'Flag if >15% difference', color: 'text-cyan-400' },
+      { word: 'Operating income vs GAAP income', expected: 'Show both figures', flag: 'Flag if only adjusted cited', color: 'text-cyan-400' },
+      { word: 'Revenue vs Billings', expected: 'Distinguish clearly', flag: 'Flag conflation', color: 'text-cyan-400' },
+    ]
+  },
+  omission: {
+    title: 'Omission Detection',
+    icon: Eye,
+    description: 'What they don\'t say is often as important as what they do say. If a CEO celebrates revenue growth but doesn\'t mention margins, and margins compressed significantly, that\'s strategic omission. We flag when key metrics are suspiciously absent from the narrative.',
+    patterns: [
+      { word: 'Revenue mentioned, margin omitted', expected: 'Discuss both', flag: 'Flag if margin declined >5%', color: 'text-purple-400' },
+      { word: 'Growth cited, profitability omitted', expected: 'Balance growth & profit', flag: 'Flag if losses widened', color: 'text-purple-400' },
+      { word: 'Positive metrics only', expected: 'Acknowledge challenges', flag: 'Flag one-sided narrative', color: 'text-purple-400' },
+    ]
+  }
+};
 
 export default function TheWhy() {
+  const [activeStrategy, setActiveStrategy] = useState('delta');
+  const strategy = DETECTION_STRATEGIES[activeStrategy];
+  const StrategyIcon = strategy.icon;
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
       {/* Hero Section */}
-      <div className="text-center space-y-4 pb-8 border-b border-gray-700">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-            <Mic className="w-8 h-8 text-white" />
+      <div className="space-y-4">
+        <div className="flex items-center space-x-4">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
+            <Mic className="w-7 h-7 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-white">
+              The "Why" — <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400">How We Catch Misleading Claims</span>
+            </h1>
+            <p className="text-gray-400 text-sm mt-1">A spoken-style walkthrough of the detection methodology</p>
           </div>
         </div>
-        <h1 className="text-4xl font-bold gradient-text">
-          The Why
-        </h1>
-        <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-          Why we built an earnings call claim verifier and why it matters
-        </p>
       </div>
 
-      {/* Problem Statement */}
-      <section className="space-y-4">
-        <div className="flex items-center space-x-3">
-          <AlertTriangle className="w-6 h-6 text-yellow-500" />
-          <h2 className="text-2xl font-bold text-white">The Problem</h2>
+      {/* Core Idea Section */}
+      <section className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-xl p-8 border border-gray-700">
+        <div className="flex items-center space-x-3 mb-6">
+          <Volume2 className="w-6 h-6 text-pink-400" />
+          <h2 className="text-xl font-bold text-pink-400">THE CORE IDEA (30 SECONDS)</h2>
         </div>
-        <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700 space-y-4">
-          <p className="text-gray-300 leading-relaxed">
-            Every quarter, executives from public companies hold earnings calls where they make bold claims about their company's performance. These claims directly influence investor decisions, stock prices, and market sentiment.
+        <div className="space-y-4 text-gray-300 leading-relaxed">
+          <p className="italic">
+            "Executives say a lot of things on earnings calls. Some of it is accurate. Some of it is misleading. We want to know the difference. <span className="text-pink-400 font-semibold">My approach: delta-thresholds.</span> When a CEO says <span className="text-yellow-300 italic">'strong growth'</span> but the SEC filing shows &lt;2% change — that's a gap between <span className="text-cyan-400">language intensity</span> and <span className="text-green-400">data magnitude</span>. The claim is technically true, but the framing creates a false impression. Beyond numbers, I detect <span className="text-orange-400">cherry-picked baselines</span> (citing YoY when QoQ is negative), <span className="text-cyan-400">metric conflation</span> (using adjusted figures when GAAP tells a different story), and <span className="text-red-400">strategic omissions</span> (celebrating revenue while hiding margin compression). If a CEO says 'revenue grew 15% year over year' — we check if that's true, but also <span className="italic">why</span> they picked that comparison."
           </p>
-          <p className="text-gray-300 leading-relaxed">
-            However, <span className="text-yellow-400 font-semibold">verifying these claims is time-consuming and requires cross-referencing multiple sources</span>: earnings call transcripts, SEC EDGAR filings (10-Q, 10-K), XBRL data, and historical quarterly comparisons.
-          </p>
-          <div className="bg-red-900/20 border border-red-700/50 rounded-lg p-4 mt-4">
-            <p className="text-red-300 text-sm leading-relaxed">
-              <strong>Real-world impact:</strong> Misleading claims can lead to misinformed investment decisions, regulatory scrutiny, and loss of investor trust. In some cases, discrepancies between what executives say and what SEC filings show can indicate deeper issues.
-            </p>
-          </div>
         </div>
       </section>
 
-      {/* Solution */}
+      {/* Verification Pipeline */}
       <section className="space-y-4">
         <div className="flex items-center space-x-3">
-          <Shield className="w-6 h-6 text-cyan-500" />
-          <h2 className="text-2xl font-bold text-white">Our Solution</h2>
-        </div>
-        <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700 space-y-4">
-          <p className="text-gray-300 leading-relaxed">
-            The <strong className="text-cyan-400">Earnings Call Claim Verifier</strong> automatically extracts claims from earnings call transcripts and verifies them against official SEC EDGAR XBRL data.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-              <div className="flex items-center space-x-2 mb-2">
-                <FileText className="w-5 h-5 text-blue-400" />
-                <h3 className="font-semibold text-white">Transcript Analysis</h3>
-              </div>
-              <p className="text-sm text-gray-400">
-                AI-powered extraction of quantitative claims from earnings call transcripts (revenue, net income, EPS, margins, etc.)
-              </p>
-            </div>
-            <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-              <div className="flex items-center space-x-2 mb-2">
-                <Database className="w-5 h-5 text-green-400" />
-                <h3 className="font-semibold text-white">SEC EDGAR Data</h3>
-              </div>
-              <p className="text-sm text-gray-400">
-                Direct integration with SEC EDGAR XBRL API to fetch official financial data from 10-Q and 10-K filings
-              </p>
-            </div>
-            <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-              <div className="flex items-center space-x-2 mb-2">
-                <CheckCircle className="w-5 h-5 text-cyan-400" />
-                <h3 className="font-semibold text-white">Automated Verification</h3>
-              </div>
-              <p className="text-sm text-gray-400">
-                Compare claimed values against actual SEC data, flag discrepancies, and calculate accuracy scores
-              </p>
-            </div>
-            <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-              <div className="flex items-center space-x-2 mb-2">
-                <TrendingUp className="w-5 h-5 text-purple-400" />
-                <h3 className="font-semibold text-white">QoQ Analysis</h3>
-              </div>
-              <p className="text-sm text-gray-400">
-                Track quarter-over-quarter changes and identify potential areas for misleading framing
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Who Benefits */}
-      <section className="space-y-4">
-        <div className="flex items-center space-x-3">
-          <Users className="w-6 h-6 text-purple-500" />
-          <h2 className="text-2xl font-bold text-white">Who Benefits</h2>
+          <Zap className="w-6 h-6 text-cyan-400" />
+          <h2 className="text-2xl font-bold text-white">Verification Pipeline</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-blue-900/30 to-blue-800/20 rounded-lg p-5 border border-blue-700/50">
-            <h3 className="font-semibold text-blue-300 mb-2">Investors</h3>
-            <p className="text-sm text-gray-300">
-              Make informed decisions based on verified data, not just executive narratives
-            </p>
-          </div>
-          <div className="bg-gradient-to-br from-green-900/30 to-green-800/20 rounded-lg p-5 border border-green-700/50">
-            <h3 className="font-semibold text-green-300 mb-2">Analysts</h3>
-            <p className="text-sm text-gray-300">
-              Quickly verify claims during earnings season without manual cross-referencing
-            </p>
-          </div>
-          <div className="bg-gradient-to-br from-purple-900/30 to-purple-800/20 rounded-lg p-5 border border-purple-700/50">
-            <h3 className="font-semibold text-purple-300 mb-2">Regulators</h3>
-            <p className="text-sm text-gray-300">
-              Identify potential discrepancies that warrant further investigation
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Technical Approach */}
-      <section className="space-y-4">
-        <div className="flex items-center space-x-3">
-          <Zap className="w-6 h-6 text-yellow-500" />
-          <h2 className="text-2xl font-bold text-white">How It Works</h2>
-        </div>
-        <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-          <ol className="space-y-4">
-            <li className="flex space-x-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500 flex items-center justify-center text-cyan-400 font-bold text-sm">
+          {/* Step 1 */}
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-lg p-5 border border-gray-700">
+            <div className="flex items-center space-x-2 mb-3">
+              <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500 flex items-center justify-center text-cyan-400 font-bold text-sm">
                 1
               </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Data Collection</h3>
-                <p className="text-sm text-gray-400">
-                  Fetch earnings call transcripts from Finnhub API and SEC EDGAR XBRL data from official SEC APIs
-                </p>
-              </div>
-            </li>
-            <li className="flex space-x-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500 flex items-center justify-center text-cyan-400 font-bold text-sm">
+              <h3 className="font-semibold text-cyan-400">Extract Claims</h3>
+            </div>
+            <p className="text-sm text-gray-400">
+              Claude AI reads the earnings call and pulls out every quantitative claim with a specific number
+            </p>
+          </div>
+
+          {/* Step 2 */}
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-lg p-5 border border-gray-700">
+            <div className="flex items-center space-x-2 mb-3">
+              <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500 flex items-center justify-center text-purple-400 font-bold text-sm">
                 2
               </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Claim Extraction</h3>
-                <p className="text-sm text-gray-400">
-                  Use AI (Claude) to extract quantitative claims from transcripts, identifying speaker, metric, value, and context
-                </p>
-              </div>
-            </li>
-            <li className="flex space-x-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500 flex items-center justify-center text-cyan-400 font-bold text-sm">
+              <h3 className="font-semibold text-purple-400">Map to XBRL</h3>
+            </div>
+            <p className="text-sm text-gray-400">
+              Each claim is mapped to a specific SEC EDGAR XBRL field — Revenue, Net Income, EPS, etc.
+            </p>
+          </div>
+
+          {/* Step 3 */}
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-lg p-5 border border-gray-700">
+            <div className="flex items-center space-x-2 mb-3">
+              <div className="w-8 h-8 rounded-full bg-green-500/20 border border-green-500 flex items-center justify-center text-green-400 font-bold text-sm">
                 3
               </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Verification</h3>
-                <p className="text-sm text-gray-400">
-                  Compare claimed values against actual SEC EDGAR data, calculate percentage differences, and flag discrepancies
-                </p>
-              </div>
-            </li>
-            <li className="flex space-x-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500 flex items-center justify-center text-cyan-400 font-bold text-sm">
+              <h3 className="font-semibold text-green-400">Compute Delta</h3>
+            </div>
+            <p className="text-sm text-gray-400">
+              Calculate the % difference between what was claimed and what was actually filed with the SEC
+            </p>
+          </div>
+
+          {/* Step 4 */}
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-lg p-5 border border-gray-700">
+            <div className="flex items-center space-x-2 mb-3">
+              <div className="w-8 h-8 rounded-full bg-yellow-500/20 border border-yellow-500 flex items-center justify-center text-yellow-400 font-bold text-sm">
                 4
               </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Severity Classification</h3>
-                <p className="text-sm text-gray-400">
-                  Classify discrepancies as accurate, minor, major, or misleading based on percentage difference thresholds
-                </p>
-              </div>
-            </li>
-            <li className="flex space-x-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500 flex items-center justify-center text-cyan-400 font-bold text-sm">
+              <h3 className="font-semibold text-yellow-400">Threshold Check</h3>
+            </div>
+            <p className="text-sm text-gray-400">
+              ≤2% = Accurate, 2-10% = Minor, &gt;10% = Major discrepancy
+            </p>
+          </div>
+
+          {/* Step 5 */}
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-lg p-5 border border-gray-700">
+            <div className="flex items-center space-x-2 mb-3">
+              <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-500 flex items-center justify-center text-purple-400 font-bold text-sm">
                 5
               </div>
-              <div>
-                <h3 className="font-semibold text-white mb-1">Reporting</h3>
-                <p className="text-sm text-gray-400">
-                  Generate accuracy scores by executive, identify patterns, and provide actionable insights
-                </p>
-              </div>
-            </li>
-          </ol>
-        </div>
-      </section>
+              <h3 className="font-semibold text-purple-400">Framing Analysis</h3>
+            </div>
+            <p className="text-sm text-gray-400">
+              Run all four misleading detectors: delta-threshold, cherry-pick, conflation, omission
+            </p>
+          </div>
 
-      {/* Impact */}
-      <section className="space-y-4">
-        <div className="flex items-center space-x-3">
-          <Target className="w-6 h-6 text-green-500" />
-          <h2 className="text-2xl font-bold text-white">The Impact</h2>
-        </div>
-        <div className="bg-gradient-to-br from-green-900/20 to-cyan-900/20 rounded-lg p-6 border border-green-700/50">
-          <div className="space-y-4">
-            <div className="flex items-start space-x-3">
-              <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-white mb-1">Increased Transparency</h3>
-                <p className="text-sm text-gray-300">
-                  Executives know their claims will be automatically verified, encouraging more accurate communication
-                </p>
+          {/* Step 6 */}
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-lg p-5 border border-gray-700">
+            <div className="flex items-center space-x-2 mb-3">
+              <div className="w-8 h-8 rounded-full bg-red-500/20 border border-red-500 flex items-center justify-center text-red-400 font-bold text-sm">
+                6
               </div>
+              <h3 className="font-semibold text-red-400">Verdict</h3>
             </div>
-            <div className="flex items-start space-x-3">
-              <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-white mb-1">Time Savings</h3>
-                <p className="text-sm text-gray-300">
-                  What used to take hours of manual work now happens in seconds, allowing analysts to focus on deeper insights
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3">
-              <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-white mb-1">Better Investment Decisions</h3>
-                <p className="text-sm text-gray-300">
-                  Investors can make decisions based on verified facts, reducing risk and improving portfolio performance
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3">
-              <CheckCircle className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className="font-semibold text-white mb-1">Market Integrity</h3>
-                <p className="text-sm text-gray-300">
-                  Automated verification helps maintain trust in public markets by holding companies accountable
-                </p>
-              </div>
-            </div>
+            <p className="text-sm text-gray-400">
+              Each claim gets a severity rating + plain-English explanation of what was said vs. what's real
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Call to Action */}
-      <section className="bg-gradient-to-r from-cyan-900/30 to-blue-900/30 rounded-lg p-8 border border-cyan-700/50 text-center">
-        <h2 className="text-2xl font-bold text-white mb-3">
-          Try It Yourself
-        </h2>
-        <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
-          Explore the dashboard to see verified claims from 10 S&P 500 companies across 4 quarters of 2025. Use the Claims Explorer to verify your own claims against SEC data.
-        </p>
-        <div className="flex justify-center space-x-4">
-          <button
-            onClick={() => window.location.href = '#dashboard'}
-            className="px-6 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors"
-          >
-            View Dashboard
-          </button>
+      {/* Four Detection Strategies */}
+      <section className="space-y-4">
+        <div className="flex items-center space-x-3">
+          <Shield className="w-6 h-6 text-purple-400" />
+          <h2 className="text-2xl font-bold text-white">Four Detection Strategies</h2>
+        </div>
+
+        {/* Strategy Tabs */}
+        <div className="flex flex-wrap gap-3">
+          {Object.entries(DETECTION_STRATEGIES).map(([key, strat]) => {
+            const Icon = strat.icon;
+            const isActive = activeStrategy === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveStrategy(key)}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all ${
+                  isActive
+                    ? 'bg-pink-500/20 border-pink-500 text-pink-400'
+                    : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:border-gray-600'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="font-semibold text-sm">{strat.title}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Active Strategy Details */}
+        <div className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 rounded-xl p-6 border border-gray-700">
+          <div className="flex items-center space-x-3 mb-4">
+            <StrategyIcon className="w-6 h-6 text-pink-400" />
+            <h3 className="text-xl font-bold text-pink-400">{strategy.title}</h3>
+            <span className="text-xs text-gray-500">Click to expand explanation</span>
+          </div>
+          <p className="text-gray-300 leading-relaxed mb-6 italic">
+            "{strategy.description}"
+          </p>
+
+          {/* Patterns Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400">Pattern</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400">Expected</th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-400">Flag When</th>
+                </tr>
+              </thead>
+              <tbody>
+                {strategy.patterns.map((pattern, idx) => (
+                  <tr key={idx} className="border-b border-gray-800">
+                    <td className="py-3 px-4 text-sm text-gray-300 font-mono">{pattern.word}</td>
+                    <td className="py-3 px-4 text-sm text-gray-400">{pattern.expected}</td>
+                    <td className={`py-3 px-4 text-sm font-semibold ${pattern.color}`}>{pattern.flag}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Live Examples Section */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <AlertTriangle className="w-6 h-6 text-yellow-400" />
+            <h2 className="text-2xl font-bold text-white">Live Examples from Actual SEC Data</h2>
+          </div>
+          <div className="flex items-center space-x-2 px-4 py-2 bg-cyan-900/30 rounded-lg border border-cyan-700/50">
+            <Eye className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm font-semibold text-cyan-400">Showing 8 examples</span>
+          </div>
+        </div>
+        <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-6 border border-gray-700 text-center">
+          <p className="text-gray-400 mb-4">
+            Explore the <strong className="text-cyan-400">Claims Explorer</strong> tab to see real examples of verified and flagged claims from 10 S&P 500 companies across 4 quarters.
+          </p>
           <button
             onClick={() => window.location.href = '#explorer'}
-            className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors"
+            className="px-6 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors"
           >
-            Explore Claims
+            View Live Examples →
           </button>
         </div>
       </section>
 
-      {/* Footer Note */}
-      <div className="text-center text-sm text-gray-500 pt-4">
+      {/* Footer */}
+      <div className="text-center text-sm text-gray-500 pt-4 border-t border-gray-800">
         <p>
-          Built with React, Fastify, SEC EDGAR API, Finnhub API, and Claude AI
+          Built with React, Fastify, SEC EDGAR XBRL API, Finnhub API, and Claude AI
         </p>
         <p className="mt-1">
-          Data sourced from official SEC EDGAR XBRL filings and verified earnings call transcripts
+          Data sourced from official SEC filings and verified earnings call transcripts
         </p>
       </div>
     </div>
