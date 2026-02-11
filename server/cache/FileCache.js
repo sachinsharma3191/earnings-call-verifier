@@ -16,10 +16,20 @@ class FileCache {
   constructor({ ttlMs = DEFAULT_TTL_MS, name = 'companies' } = {}) {
     this.ttlMs = ttlMs;
     this.name = name;
-    // Use /tmp in serverless environments (only writable directory)
-    this.cacheDir = isServerless 
-      ? join('/tmp', '.cache')
-      : join(__dirname, '../../.cache');
+    
+    if (isServerless) {
+      // In serverless, try to load from project root .cache (deployed with app)
+      // Fall back to /tmp/.cache for writes
+      const projectCache = join(__dirname, '../../.cache');
+      const tmpCache = join('/tmp', '.cache');
+      
+      // Check if pre-built cache exists in project root
+      const projectCacheFile = join(projectCache, `${name}.json`);
+      this.cacheDir = existsSync(projectCacheFile) ? projectCache : tmpCache;
+    } else {
+      this.cacheDir = join(__dirname, '../../.cache');
+    }
+    
     this.cacheFile = join(this.cacheDir, `${name}.json`);
     this.ensureCacheDir();
   }
