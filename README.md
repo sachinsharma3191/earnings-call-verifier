@@ -191,7 +191,7 @@ Deploying as a Claude Artifact provides free LLM inference for the extraction st
 │              Fastify API Server (Node.js)                  │
 │  Routes: companies, verification, discrepancies, health   │
 │  Services: SECDataService, TranscriptService              │
-│  Cache: AggregateCache + FileCache (disk-backed)          │
+│  Cache: AggregateCache + FileCache + ClaimsCache (disk)    │
 └──────────────────┬───────────────────────────────────────┘
                    │  Background Worker (child process)
                    │  Fetches SEC XBRL + scrapes transcripts
@@ -217,6 +217,8 @@ Deploying as a Claude Artifact provides free LLM inference for the extraction st
 | `GET` | `/api/companies/{ticker}/metrics/{quarter}` | SEC metrics for quarter |
 | `GET` | `/api/discrepancies/top?limit=5` | Top N QoQ discrepancies |
 | `POST` | `/api/verification/verify` | Verify claims JSON against SEC data |
+| `POST` | `/api/claims/store` | Store verified claims to persistent cache |
+| `POST` | `/api/claims/search` | Search stored claims (filters: ticker, quarter, metric, status, severity, speaker, text) |
 | `GET` | `/api/transcripts/sources` | Full transcript manifest |
 | `GET` | `/api/transcripts/sources/{ticker}` | Company transcript sources |
 | `GET` | `/api/openapi` | OpenAPI spec for Claude Skill |
@@ -242,8 +244,8 @@ Register the Claude Skill using `/api/openapi`, or use the Claude Artifact versi
 ### 2. Verify Claims
 In **Claims Explorer → Verify tab**, select company and quarter, paste claims JSON, click Verify. The API cross-references each claim against SEC EDGAR XBRL data and classifies the result.
 
-### 3. Search & Analyze
-Switch to **Search tab** to filter by severity, metric, speaker, or text. The Dashboard shows top discrepancies across all 10 companies.
+### 3. Store & Search
+Verified claims are automatically stored to the backend cache (`POST /api/claims/store`). Switch to the **Search tab**, select filters (company, quarter, status, text), and click **Search** to query all stored claims via `POST /api/claims/search`. The Dashboard shows top discrepancies across all 10 companies.
 
 ---
 
@@ -262,6 +264,7 @@ earnings-call-verifier/
 │   ├── cache/
 │   │   ├── AggregateCache.js      # In-memory + disk
 │   │   ├── CacheRefresher.js      # Worker orchestrator
+│   │   ├── ClaimsCache.js         # Persistent verified claims store
 │   │   └── FileCache.js           # Per-company file cache
 │   ├── constants/
 │   │   ├── companies.js           # 10 company tickers/CIKs
