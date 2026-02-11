@@ -1,5 +1,5 @@
 // Vercel serverless function entry point
-import { getFastifyApp } from '../lib/fastifyApp.js';
+import { getFastifyApp } from '../server/fastifyApp.js';
 
 let app;
 

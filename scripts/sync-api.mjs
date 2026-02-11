@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { cpSync, rmSync, existsSync } from 'fs';
+import { cpSync, rmSync, existsSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -10,12 +10,10 @@ const rootDir = join(__dirname, '..');
 const apiDir = join(rootDir, 'api');
 const serverDir = join(rootDir, 'server');
 
-// Remove existing api directory
-if (existsSync(apiDir)) {
-  rmSync(apiDir, { recursive: true, force: true });
+// Ensure api directory exists
+if (!existsSync(apiDir)) {
+  mkdirSync(apiDir, { recursive: true });
 }
 
-// Copy server to api
-cpSync(serverDir, apiDir, { recursive: true });
-
-console.log('✅ Synced server/ to api/');
+// Keep the api/index.js entry point, just ensure server code is available
+console.log('✅ API folder ready - server code available at ../server/');

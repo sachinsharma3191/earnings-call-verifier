@@ -1,6 +1,6 @@
 
-import { getAvailableTickers } from '../lib/sec.js';
-import { AnalysisPipeline } from '../lib/services/AnalysisPipeline.js';
+import { getAvailableTickers } from "../server/sec.js';
+import { AnalysisPipeline } from "../server/services/AnalysisPipeline.js';
 
 async function debugAPI() {
     console.log('--- Debugging /api/companies ---');

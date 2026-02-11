@@ -5,10 +5,10 @@
 // - Can be run standalone or spawned by the server as a child process
 // - Exits when done (one-shot) or runs continuously with --watch flag
 
-import { fileCache } from '../lib/cache/FileCache.js';
-import { aggregateCache } from '../lib/cache/AggregateCache.js';
-import { DataAggregator } from '../lib/services/DataAggregator.js';
-import { TICKER_TO_CIK } from '../lib/constants/index.js';
+import { fileCache } from '../server/cache/FileCache.js';
+import { aggregateCache } from '../server/cache/AggregateCache.js';
+import { DataAggregator } from '../server/services/DataAggregator.js';
+import { TICKER_TO_CIK } from '../server/constants/index.js';
 
 const WATCH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 const isWatch = process.argv.includes('--watch');

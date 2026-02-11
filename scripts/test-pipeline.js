@@ -1,5 +1,5 @@
 
-import { AnalysisPipeline } from '../lib/services/AnalysisPipeline.js';
+import { AnalysisPipeline } from "../server/services/AnalysisPipeline.js';
 
 async function testPipeline() {
     console.log('🚀 Starting Full Pipeline Test...');
