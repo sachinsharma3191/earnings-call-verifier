@@ -6,7 +6,8 @@
   "scripts": {
     "install": "npm --prefix ui install",
     "dev": "npm --prefix ui run dev",
-    "build": "npm --prefix ui run build",
+    "build": "npm run sync:api && npm --prefix ui run build",
+    "sync:api": "node scripts/sync-api.mjs",
     "prefetch": "node scripts/prefetch-on-start.js",
     "dev:with-cache": "npm run dev & sleep 3 && npm run prefetch",
     "api": "node bin/server.js",
