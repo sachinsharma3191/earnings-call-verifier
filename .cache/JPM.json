@@ -1,0 +1,71 @@
+{
+  "data": {
+    "ticker": "JPM",
+    "name": "JPMorgan Chase & Co.",
+    "cik": "0000019617",
+    "quarters": [
+      {
+        "quarter": "Q4 2025",
+        "endDate": "2025-12-31",
+        "filed": "2026-01-31",
+        "financials": {
+          "Revenues": 110.18639917902823,
+          "NetIncome": 30.942729934710023,
+          "GrossProfit": 60.1245249947117,
+          "OperatingIncome": 37.27765675437469,
+          "CostOfRevenue": 67.2,
+          "OperatingExpenses": 14.9,
+          "EPS": 2.3
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q3 2025",
+        "endDate": "2025-09-30",
+        "filed": "2025-10-31",
+        "financials": {
+          "Revenues": 104.24541400241336,
+          "NetIncome": 29.406961865412637,
+          "GrossProfit": 46.36313235467747,
+          "OperatingIncome": 36.968717683804336,
+          "CostOfRevenue": 64.3,
+          "OperatingExpenses": 14.1,
+          "EPS": 2.2
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q2 2025",
+        "endDate": "2025-06-30",
+        "filed": "2025-07-31",
+        "financials": {
+          "Revenues": 119.63802041192902,
+          "NetIncome": 38.50654279489809,
+          "GrossProfit": 54.78830588332085,
+          "OperatingIncome": 40.770506963386055,
+          "CostOfRevenue": 62.4,
+          "OperatingExpenses": 14.3,
+          "EPS": 2.1
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q1 2025",
+        "endDate": "2025-03-31",
+        "filed": "2025-04-30",
+        "financials": {
+          "Revenues": 96.30438192449631,
+          "NetIncome": 31.662773121614986,
+          "GrossProfit": 50.695121495664154,
+          "OperatingIncome": 40.21190368270227,
+          "CostOfRevenue": 61.6,
+          "OperatingExpenses": 14,
+          "EPS": 2
+        },
+        "dataSource": "static_fallback"
+      }
+    ]
+  },
+  "timestamp": 1770794081057,
+  "lastUpdated": "2026-02-11T07:14:41.057Z"
+}

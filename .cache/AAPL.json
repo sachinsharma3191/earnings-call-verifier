@@ -1,0 +1,71 @@
+{
+  "data": {
+    "ticker": "AAPL",
+    "name": "Apple Inc.",
+    "cik": "0000320193",
+    "quarters": [
+      {
+        "quarter": "Q4 2025",
+        "endDate": "2025-12-31",
+        "filed": "2026-01-31",
+        "financials": {
+          "Revenues": 124.3,
+          "NetIncome": 35.2,
+          "GrossProfit": 57.1,
+          "OperatingIncome": 42.8,
+          "CostOfRevenue": 67.2,
+          "OperatingExpenses": 14.9,
+          "EPS": 2.3
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q3 2025",
+        "endDate": "2025-09-30",
+        "filed": "2025-10-31",
+        "financials": {
+          "Revenues": 118.5,
+          "NetIncome": 33.8,
+          "GrossProfit": 54.2,
+          "OperatingIncome": 40.1,
+          "CostOfRevenue": 64.3,
+          "OperatingExpenses": 14.1,
+          "EPS": 2.2
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q2 2025",
+        "endDate": "2025-06-30",
+        "filed": "2025-07-31",
+        "financials": {
+          "Revenues": 115.2,
+          "NetIncome": 32.1,
+          "GrossProfit": 52.8,
+          "OperatingIncome": 38.5,
+          "CostOfRevenue": 62.4,
+          "OperatingExpenses": 14.3,
+          "EPS": 2.1
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q1 2025",
+        "endDate": "2025-03-31",
+        "filed": "2025-04-30",
+        "financials": {
+          "Revenues": 112.8,
+          "NetIncome": 30.5,
+          "GrossProfit": 51.2,
+          "OperatingIncome": 37.2,
+          "CostOfRevenue": 61.6,
+          "OperatingExpenses": 14,
+          "EPS": 2
+        },
+        "dataSource": "static_fallback"
+      }
+    ]
+  },
+  "timestamp": 1770794081052,
+  "lastUpdated": "2026-02-11T07:14:41.052Z"
+}

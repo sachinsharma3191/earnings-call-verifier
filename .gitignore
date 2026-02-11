@@ -50,4 +50,4 @@ venv/
 ENV/
 .vercel
 .env*.local
-.cache/
+# .cache/ - Included in deployment (pre-built during build)

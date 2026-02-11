@@ -1,0 +1,71 @@
+{
+  "data": {
+    "ticker": "GOOGL",
+    "name": "Alphabet Inc.",
+    "cik": "0001652044",
+    "quarters": [
+      {
+        "quarter": "Q4 2025",
+        "endDate": "2025-12-31",
+        "filed": "2026-01-31",
+        "financials": {
+          "Revenues": 111.02802312247788,
+          "NetIncome": 36.034260751441735,
+          "GrossProfit": 63.890215773612645,
+          "OperatingIncome": 49.981086108251155,
+          "CostOfRevenue": 67.2,
+          "OperatingExpenses": 14.9,
+          "EPS": 2.3
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q3 2025",
+        "endDate": "2025-09-30",
+        "filed": "2025-10-31",
+        "financials": {
+          "Revenues": 142.1339897578447,
+          "NetIncome": 38.814026598828455,
+          "GrossProfit": 64.27592802351363,
+          "OperatingIncome": 41.28878365919116,
+          "CostOfRevenue": 64.3,
+          "OperatingExpenses": 14.1,
+          "EPS": 2.2
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q2 2025",
+        "endDate": "2025-06-30",
+        "filed": "2025-07-31",
+        "financials": {
+          "Revenues": 94.06748162144501,
+          "NetIncome": 30.729207382098533,
+          "GrossProfit": 56.312369945291024,
+          "OperatingIncome": 38.70177219574137,
+          "CostOfRevenue": 62.4,
+          "OperatingExpenses": 14.3,
+          "EPS": 2.1
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q1 2025",
+        "endDate": "2025-03-31",
+        "filed": "2025-04-30",
+        "financials": {
+          "Revenues": 117.95498282141482,
+          "NetIncome": 28.408566158881086,
+          "GrossProfit": 52.8160140711776,
+          "OperatingIncome": 35.39567822334849,
+          "CostOfRevenue": 61.6,
+          "OperatingExpenses": 14,
+          "EPS": 2
+        },
+        "dataSource": "static_fallback"
+      }
+    ]
+  },
+  "timestamp": 1770794081055,
+  "lastUpdated": "2026-02-11T07:14:41.055Z"
+}

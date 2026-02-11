@@ -1,0 +1,71 @@
+{
+  "data": {
+    "ticker": "AMZN",
+    "name": "Amazon.com Inc.",
+    "cik": "0001018724",
+    "quarters": [
+      {
+        "quarter": "Q4 2025",
+        "endDate": "2025-12-31",
+        "filed": "2026-01-31",
+        "financials": {
+          "Revenues": 148.63728459027817,
+          "NetIncome": 29.59893872461109,
+          "GrossProfit": 61.02732751435895,
+          "OperatingIncome": 34.47359046531645,
+          "CostOfRevenue": 67.2,
+          "OperatingExpenses": 14.9,
+          "EPS": 2.3
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q3 2025",
+        "endDate": "2025-09-30",
+        "filed": "2025-10-31",
+        "financials": {
+          "Revenues": 112.24051712476489,
+          "NetIncome": 39.26180616267702,
+          "GrossProfit": 64.20285369801273,
+          "OperatingIncome": 36.81796083162705,
+          "CostOfRevenue": 64.3,
+          "OperatingExpenses": 14.1,
+          "EPS": 2.2
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q2 2025",
+        "endDate": "2025-06-30",
+        "filed": "2025-07-31",
+        "financials": {
+          "Revenues": 128.276446605603,
+          "NetIncome": 30.48023669510251,
+          "GrossProfit": 42.8932414008039,
+          "OperatingIncome": 38.10916452856383,
+          "CostOfRevenue": 62.4,
+          "OperatingExpenses": 14.3,
+          "EPS": 2.1
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q1 2025",
+        "endDate": "2025-03-31",
+        "filed": "2025-04-30",
+        "financials": {
+          "Revenues": 119.93402015326802,
+          "NetIncome": 27.697790657361825,
+          "GrossProfit": 47.72148614695925,
+          "OperatingIncome": 37.04298981841055,
+          "CostOfRevenue": 61.6,
+          "OperatingExpenses": 14,
+          "EPS": 2
+        },
+        "dataSource": "static_fallback"
+      }
+    ]
+  },
+  "timestamp": 1770794081056,
+  "lastUpdated": "2026-02-11T07:14:41.056Z"
+}

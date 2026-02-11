@@ -1,0 +1,71 @@
+{
+  "data": {
+    "ticker": "NVDA",
+    "name": "NVIDIA Corporation",
+    "cik": "0001045810",
+    "quarters": [
+      {
+        "quarter": "Q4 2025",
+        "endDate": "2025-12-31",
+        "filed": "2026-01-31",
+        "financials": {
+          "Revenues": 128.0231327788893,
+          "NetIncome": 29.559303761993906,
+          "GrossProfit": 66.35411037016976,
+          "OperatingIncome": 41.74381982353784,
+          "CostOfRevenue": 67.2,
+          "OperatingExpenses": 14.9,
+          "EPS": 2.3
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q3 2025",
+        "endDate": "2025-09-30",
+        "filed": "2025-10-31",
+        "financials": {
+          "Revenues": 116.76041317903189,
+          "NetIncome": 32.244855595657576,
+          "GrossProfit": 64.5522816955773,
+          "OperatingIncome": 36.506684460057144,
+          "CostOfRevenue": 64.3,
+          "OperatingExpenses": 14.1,
+          "EPS": 2.2
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q2 2025",
+        "endDate": "2025-06-30",
+        "filed": "2025-07-31",
+        "financials": {
+          "Revenues": 120.62383558405391,
+          "NetIncome": 32.739429934521866,
+          "GrossProfit": 58.07287913215872,
+          "OperatingIncome": 34.84316610814808,
+          "CostOfRevenue": 62.4,
+          "OperatingExpenses": 14.3,
+          "EPS": 2.1
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q1 2025",
+        "endDate": "2025-03-31",
+        "filed": "2025-04-30",
+        "financials": {
+          "Revenues": 93.70019679674007,
+          "NetIncome": 30.034617333763336,
+          "GrossProfit": 54.42400098626253,
+          "OperatingIncome": 29.762465397305032,
+          "CostOfRevenue": 61.6,
+          "OperatingExpenses": 14,
+          "EPS": 2
+        },
+        "dataSource": "static_fallback"
+      }
+    ]
+  },
+  "timestamp": 1770794081054,
+  "lastUpdated": "2026-02-11T07:14:41.054Z"
+}

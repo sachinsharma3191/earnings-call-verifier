@@ -1,0 +1,71 @@
+{
+  "data": {
+    "ticker": "JNJ",
+    "name": "Johnson & Johnson",
+    "cik": "0000200406",
+    "quarters": [
+      {
+        "quarter": "Q4 2025",
+        "endDate": "2025-12-31",
+        "filed": "2026-01-31",
+        "financials": {
+          "Revenues": 142.48441263365598,
+          "NetIncome": 38.20184697262751,
+          "GrossProfit": 66.14635747165241,
+          "OperatingIncome": 34.367017847271704,
+          "CostOfRevenue": 67.2,
+          "OperatingExpenses": 14.9,
+          "EPS": 2.3
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q3 2025",
+        "endDate": "2025-09-30",
+        "filed": "2025-10-31",
+        "financials": {
+          "Revenues": 137.06326455364695,
+          "NetIncome": 38.2435739201381,
+          "GrossProfit": 48.403289610223126,
+          "OperatingIncome": 43.80862422249483,
+          "CostOfRevenue": 64.3,
+          "OperatingExpenses": 14.1,
+          "EPS": 2.2
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q2 2025",
+        "endDate": "2025-06-30",
+        "filed": "2025-07-31",
+        "financials": {
+          "Revenues": 128.21191745899637,
+          "NetIncome": 33.734974401854366,
+          "GrossProfit": 63.27487299770066,
+          "OperatingIncome": 36.461648944252225,
+          "CostOfRevenue": 62.4,
+          "OperatingExpenses": 14.3,
+          "EPS": 2.1
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q1 2025",
+        "endDate": "2025-03-31",
+        "filed": "2025-04-30",
+        "financials": {
+          "Revenues": 98.05378702243554,
+          "NetIncome": 29.588197714975472,
+          "GrossProfit": 42.83041343606715,
+          "OperatingIncome": 32.95920812356605,
+          "CostOfRevenue": 61.6,
+          "OperatingExpenses": 14,
+          "EPS": 2
+        },
+        "dataSource": "static_fallback"
+      }
+    ]
+  },
+  "timestamp": 1770794081058,
+  "lastUpdated": "2026-02-11T07:14:41.058Z"
+}

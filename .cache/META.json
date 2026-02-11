@@ -1,0 +1,71 @@
+{
+  "data": {
+    "ticker": "META",
+    "name": "Meta Platforms Inc.",
+    "cik": "0001326801",
+    "quarters": [
+      {
+        "quarter": "Q4 2025",
+        "endDate": "2025-12-31",
+        "filed": "2026-01-31",
+        "financials": {
+          "Revenues": 105.2653910991566,
+          "NetIncome": 36.89220380799038,
+          "GrossProfit": 45.93756443321138,
+          "OperatingIncome": 42.8578729841713,
+          "CostOfRevenue": 67.2,
+          "OperatingExpenses": 14.9,
+          "EPS": 2.3
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q3 2025",
+        "endDate": "2025-09-30",
+        "filed": "2025-10-31",
+        "financials": {
+          "Revenues": 98.59046275902622,
+          "NetIncome": 30.073823602258702,
+          "GrossProfit": 43.62054220014359,
+          "OperatingIncome": 45.368146088279815,
+          "CostOfRevenue": 64.3,
+          "OperatingExpenses": 14.1,
+          "EPS": 2.2
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q2 2025",
+        "endDate": "2025-06-30",
+        "filed": "2025-07-31",
+        "financials": {
+          "Revenues": 119.524511582942,
+          "NetIncome": 29.064948484175478,
+          "GrossProfit": 46.10180203808161,
+          "OperatingIncome": 34.77381926439351,
+          "CostOfRevenue": 62.4,
+          "OperatingExpenses": 14.3,
+          "EPS": 2.1
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q1 2025",
+        "endDate": "2025-03-31",
+        "filed": "2025-04-30",
+        "financials": {
+          "Revenues": 95.73930041736287,
+          "NetIncome": 29.855625754980192,
+          "GrossProfit": 44.26729068868977,
+          "OperatingIncome": 38.02514304016304,
+          "CostOfRevenue": 61.6,
+          "OperatingExpenses": 14,
+          "EPS": 2
+        },
+        "dataSource": "static_fallback"
+      }
+    ]
+  },
+  "timestamp": 1770794081056,
+  "lastUpdated": "2026-02-11T07:14:41.056Z"
+}

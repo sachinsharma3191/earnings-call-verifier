@@ -1,0 +1,71 @@
+{
+  "data": {
+    "ticker": "MSFT",
+    "name": "Microsoft Corporation",
+    "cik": "0000789019",
+    "quarters": [
+      {
+        "quarter": "Q4 2025",
+        "endDate": "2025-12-31",
+        "filed": "2026-01-31",
+        "financials": {
+          "Revenues": 114.69414322205316,
+          "NetIncome": 39.04270965400769,
+          "GrossProfit": 63.16579756765175,
+          "OperatingIncome": 49.4402497270153,
+          "CostOfRevenue": 67.2,
+          "OperatingExpenses": 14.9,
+          "EPS": 2.3
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q3 2025",
+        "endDate": "2025-09-30",
+        "filed": "2025-10-31",
+        "financials": {
+          "Revenues": 96.83405828849315,
+          "NetIncome": 34.00701026167457,
+          "GrossProfit": 57.16306792730125,
+          "OperatingIncome": 34.0859426817439,
+          "CostOfRevenue": 64.3,
+          "OperatingExpenses": 14.1,
+          "EPS": 2.2
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q2 2025",
+        "endDate": "2025-06-30",
+        "filed": "2025-07-31",
+        "financials": {
+          "Revenues": 130.50266607256765,
+          "NetIncome": 32.94819655317041,
+          "GrossProfit": 59.72739062123426,
+          "OperatingIncome": 34.1653325360319,
+          "CostOfRevenue": 62.4,
+          "OperatingExpenses": 14.3,
+          "EPS": 2.1
+        },
+        "dataSource": "static_fallback"
+      },
+      {
+        "quarter": "Q1 2025",
+        "endDate": "2025-03-31",
+        "filed": "2025-04-30",
+        "financials": {
+          "Revenues": 122.0398735157333,
+          "NetIncome": 35.776423597618496,
+          "GrossProfit": 58.3433777195882,
+          "OperatingIncome": 42.295352792637296,
+          "CostOfRevenue": 61.6,
+          "OperatingExpenses": 14,
+          "EPS": 2
+        },
+        "dataSource": "static_fallback"
+      }
+    ]
+  },
+  "timestamp": 1770794081055,
+  "lastUpdated": "2026-02-11T07:14:41.055Z"
+}

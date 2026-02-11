@@ -1,0 +1,678 @@
+{
+  "cache": {
+    "AAPL": {
+      "ticker": "AAPL",
+      "name": "Apple Inc.",
+      "cik": "0000320193",
+      "quarters": [
+        {
+          "quarter": "Q4 2025",
+          "endDate": "2025-12-31",
+          "filed": "2026-01-31",
+          "financials": {
+            "Revenues": 124.3,
+            "NetIncome": 35.2,
+            "GrossProfit": 57.1,
+            "OperatingIncome": 42.8,
+            "CostOfRevenue": 67.2,
+            "OperatingExpenses": 14.9,
+            "EPS": 2.3
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q3 2025",
+          "endDate": "2025-09-30",
+          "filed": "2025-10-31",
+          "financials": {
+            "Revenues": 118.5,
+            "NetIncome": 33.8,
+            "GrossProfit": 54.2,
+            "OperatingIncome": 40.1,
+            "CostOfRevenue": 64.3,
+            "OperatingExpenses": 14.1,
+            "EPS": 2.2
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q2 2025",
+          "endDate": "2025-06-30",
+          "filed": "2025-07-31",
+          "financials": {
+            "Revenues": 115.2,
+            "NetIncome": 32.1,
+            "GrossProfit": 52.8,
+            "OperatingIncome": 38.5,
+            "CostOfRevenue": 62.4,
+            "OperatingExpenses": 14.3,
+            "EPS": 2.1
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q1 2025",
+          "endDate": "2025-03-31",
+          "filed": "2025-04-30",
+          "financials": {
+            "Revenues": 112.8,
+            "NetIncome": 30.5,
+            "GrossProfit": 51.2,
+            "OperatingIncome": 37.2,
+            "CostOfRevenue": 61.6,
+            "OperatingExpenses": 14,
+            "EPS": 2
+          },
+          "dataSource": "static_fallback"
+        }
+      ]
+    },
+    "NVDA": {
+      "ticker": "NVDA",
+      "name": "NVIDIA Corporation",
+      "cik": "0001045810",
+      "quarters": [
+        {
+          "quarter": "Q4 2025",
+          "endDate": "2025-12-31",
+          "filed": "2026-01-31",
+          "financials": {
+            "Revenues": 128.0231327788893,
+            "NetIncome": 29.559303761993906,
+            "GrossProfit": 66.35411037016976,
+            "OperatingIncome": 41.74381982353784,
+            "CostOfRevenue": 67.2,
+            "OperatingExpenses": 14.9,
+            "EPS": 2.3
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q3 2025",
+          "endDate": "2025-09-30",
+          "filed": "2025-10-31",
+          "financials": {
+            "Revenues": 116.76041317903189,
+            "NetIncome": 32.244855595657576,
+            "GrossProfit": 64.5522816955773,
+            "OperatingIncome": 36.506684460057144,
+            "CostOfRevenue": 64.3,
+            "OperatingExpenses": 14.1,
+            "EPS": 2.2
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q2 2025",
+          "endDate": "2025-06-30",
+          "filed": "2025-07-31",
+          "financials": {
+            "Revenues": 120.62383558405391,
+            "NetIncome": 32.739429934521866,
+            "GrossProfit": 58.07287913215872,
+            "OperatingIncome": 34.84316610814808,
+            "CostOfRevenue": 62.4,
+            "OperatingExpenses": 14.3,
+            "EPS": 2.1
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q1 2025",
+          "endDate": "2025-03-31",
+          "filed": "2025-04-30",
+          "financials": {
+            "Revenues": 93.70019679674007,
+            "NetIncome": 30.034617333763336,
+            "GrossProfit": 54.42400098626253,
+            "OperatingIncome": 29.762465397305032,
+            "CostOfRevenue": 61.6,
+            "OperatingExpenses": 14,
+            "EPS": 2
+          },
+          "dataSource": "static_fallback"
+        }
+      ]
+    },
+    "MSFT": {
+      "ticker": "MSFT",
+      "name": "Microsoft Corporation",
+      "cik": "0000789019",
+      "quarters": [
+        {
+          "quarter": "Q4 2025",
+          "endDate": "2025-12-31",
+          "filed": "2026-01-31",
+          "financials": {
+            "Revenues": 114.69414322205316,
+            "NetIncome": 39.04270965400769,
+            "GrossProfit": 63.16579756765175,
+            "OperatingIncome": 49.4402497270153,
+            "CostOfRevenue": 67.2,
+            "OperatingExpenses": 14.9,
+            "EPS": 2.3
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q3 2025",
+          "endDate": "2025-09-30",
+          "filed": "2025-10-31",
+          "financials": {
+            "Revenues": 96.83405828849315,
+            "NetIncome": 34.00701026167457,
+            "GrossProfit": 57.16306792730125,
+            "OperatingIncome": 34.0859426817439,
+            "CostOfRevenue": 64.3,
+            "OperatingExpenses": 14.1,
+            "EPS": 2.2
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q2 2025",
+          "endDate": "2025-06-30",
+          "filed": "2025-07-31",
+          "financials": {
+            "Revenues": 130.50266607256765,
+            "NetIncome": 32.94819655317041,
+            "GrossProfit": 59.72739062123426,
+            "OperatingIncome": 34.1653325360319,
+            "CostOfRevenue": 62.4,
+            "OperatingExpenses": 14.3,
+            "EPS": 2.1
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q1 2025",
+          "endDate": "2025-03-31",
+          "filed": "2025-04-30",
+          "financials": {
+            "Revenues": 122.0398735157333,
+            "NetIncome": 35.776423597618496,
+            "GrossProfit": 58.3433777195882,
+            "OperatingIncome": 42.295352792637296,
+            "CostOfRevenue": 61.6,
+            "OperatingExpenses": 14,
+            "EPS": 2
+          },
+          "dataSource": "static_fallback"
+        }
+      ]
+    },
+    "GOOGL": {
+      "ticker": "GOOGL",
+      "name": "Alphabet Inc.",
+      "cik": "0001652044",
+      "quarters": [
+        {
+          "quarter": "Q4 2025",
+          "endDate": "2025-12-31",
+          "filed": "2026-01-31",
+          "financials": {
+            "Revenues": 111.02802312247788,
+            "NetIncome": 36.034260751441735,
+            "GrossProfit": 63.890215773612645,
+            "OperatingIncome": 49.981086108251155,
+            "CostOfRevenue": 67.2,
+            "OperatingExpenses": 14.9,
+            "EPS": 2.3
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q3 2025",
+          "endDate": "2025-09-30",
+          "filed": "2025-10-31",
+          "financials": {
+            "Revenues": 142.1339897578447,
+            "NetIncome": 38.814026598828455,
+            "GrossProfit": 64.27592802351363,
+            "OperatingIncome": 41.28878365919116,
+            "CostOfRevenue": 64.3,
+            "OperatingExpenses": 14.1,
+            "EPS": 2.2
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q2 2025",
+          "endDate": "2025-06-30",
+          "filed": "2025-07-31",
+          "financials": {
+            "Revenues": 94.06748162144501,
+            "NetIncome": 30.729207382098533,
+            "GrossProfit": 56.312369945291024,
+            "OperatingIncome": 38.70177219574137,
+            "CostOfRevenue": 62.4,
+            "OperatingExpenses": 14.3,
+            "EPS": 2.1
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q1 2025",
+          "endDate": "2025-03-31",
+          "filed": "2025-04-30",
+          "financials": {
+            "Revenues": 117.95498282141482,
+            "NetIncome": 28.408566158881086,
+            "GrossProfit": 52.8160140711776,
+            "OperatingIncome": 35.39567822334849,
+            "CostOfRevenue": 61.6,
+            "OperatingExpenses": 14,
+            "EPS": 2
+          },
+          "dataSource": "static_fallback"
+        }
+      ]
+    },
+    "AMZN": {
+      "ticker": "AMZN",
+      "name": "Amazon.com Inc.",
+      "cik": "0001018724",
+      "quarters": [
+        {
+          "quarter": "Q4 2025",
+          "endDate": "2025-12-31",
+          "filed": "2026-01-31",
+          "financials": {
+            "Revenues": 148.63728459027817,
+            "NetIncome": 29.59893872461109,
+            "GrossProfit": 61.02732751435895,
+            "OperatingIncome": 34.47359046531645,
+            "CostOfRevenue": 67.2,
+            "OperatingExpenses": 14.9,
+            "EPS": 2.3
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q3 2025",
+          "endDate": "2025-09-30",
+          "filed": "2025-10-31",
+          "financials": {
+            "Revenues": 112.24051712476489,
+            "NetIncome": 39.26180616267702,
+            "GrossProfit": 64.20285369801273,
+            "OperatingIncome": 36.81796083162705,
+            "CostOfRevenue": 64.3,
+            "OperatingExpenses": 14.1,
+            "EPS": 2.2
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q2 2025",
+          "endDate": "2025-06-30",
+          "filed": "2025-07-31",
+          "financials": {
+            "Revenues": 128.276446605603,
+            "NetIncome": 30.48023669510251,
+            "GrossProfit": 42.8932414008039,
+            "OperatingIncome": 38.10916452856383,
+            "CostOfRevenue": 62.4,
+            "OperatingExpenses": 14.3,
+            "EPS": 2.1
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q1 2025",
+          "endDate": "2025-03-31",
+          "filed": "2025-04-30",
+          "financials": {
+            "Revenues": 119.93402015326802,
+            "NetIncome": 27.697790657361825,
+            "GrossProfit": 47.72148614695925,
+            "OperatingIncome": 37.04298981841055,
+            "CostOfRevenue": 61.6,
+            "OperatingExpenses": 14,
+            "EPS": 2
+          },
+          "dataSource": "static_fallback"
+        }
+      ]
+    },
+    "META": {
+      "ticker": "META",
+      "name": "Meta Platforms Inc.",
+      "cik": "0001326801",
+      "quarters": [
+        {
+          "quarter": "Q4 2025",
+          "endDate": "2025-12-31",
+          "filed": "2026-01-31",
+          "financials": {
+            "Revenues": 105.2653910991566,
+            "NetIncome": 36.89220380799038,
+            "GrossProfit": 45.93756443321138,
+            "OperatingIncome": 42.8578729841713,
+            "CostOfRevenue": 67.2,
+            "OperatingExpenses": 14.9,
+            "EPS": 2.3
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q3 2025",
+          "endDate": "2025-09-30",
+          "filed": "2025-10-31",
+          "financials": {
+            "Revenues": 98.59046275902622,
+            "NetIncome": 30.073823602258702,
+            "GrossProfit": 43.62054220014359,
+            "OperatingIncome": 45.368146088279815,
+            "CostOfRevenue": 64.3,
+            "OperatingExpenses": 14.1,
+            "EPS": 2.2
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q2 2025",
+          "endDate": "2025-06-30",
+          "filed": "2025-07-31",
+          "financials": {
+            "Revenues": 119.524511582942,
+            "NetIncome": 29.064948484175478,
+            "GrossProfit": 46.10180203808161,
+            "OperatingIncome": 34.77381926439351,
+            "CostOfRevenue": 62.4,
+            "OperatingExpenses": 14.3,
+            "EPS": 2.1
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q1 2025",
+          "endDate": "2025-03-31",
+          "filed": "2025-04-30",
+          "financials": {
+            "Revenues": 95.73930041736287,
+            "NetIncome": 29.855625754980192,
+            "GrossProfit": 44.26729068868977,
+            "OperatingIncome": 38.02514304016304,
+            "CostOfRevenue": 61.6,
+            "OperatingExpenses": 14,
+            "EPS": 2
+          },
+          "dataSource": "static_fallback"
+        }
+      ]
+    },
+    "TSLA": {
+      "ticker": "TSLA",
+      "name": "Tesla Inc.",
+      "cik": "0001318605",
+      "quarters": [
+        {
+          "quarter": "Q4 2025",
+          "endDate": "2025-12-31",
+          "filed": "2026-01-31",
+          "financials": {
+            "Revenues": 121.90249276188689,
+            "NetIncome": 37.10479020550981,
+            "GrossProfit": 64.40071739115656,
+            "OperatingIncome": 41.71378149028166,
+            "CostOfRevenue": 67.2,
+            "OperatingExpenses": 14.9,
+            "EPS": 2.3
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q3 2025",
+          "endDate": "2025-09-30",
+          "filed": "2025-10-31",
+          "financials": {
+            "Revenues": 138.1375772205055,
+            "NetIncome": 38.817823085251455,
+            "GrossProfit": 45.60955355071378,
+            "OperatingIncome": 38.22454335396784,
+            "CostOfRevenue": 64.3,
+            "OperatingExpenses": 14.1,
+            "EPS": 2.2
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q2 2025",
+          "endDate": "2025-06-30",
+          "filed": "2025-07-31",
+          "financials": {
+            "Revenues": 116.43074886576004,
+            "NetIncome": 27.02329757006766,
+            "GrossProfit": 52.56420196786391,
+            "OperatingIncome": 45.51266339692587,
+            "CostOfRevenue": 62.4,
+            "OperatingExpenses": 14.3,
+            "EPS": 2.1
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q1 2025",
+          "endDate": "2025-03-31",
+          "filed": "2025-04-30",
+          "financials": {
+            "Revenues": 134.89531304925347,
+            "NetIncome": 32.85417733196882,
+            "GrossProfit": 43.73266951156976,
+            "OperatingIncome": 42.99342496549472,
+            "CostOfRevenue": 61.6,
+            "OperatingExpenses": 14,
+            "EPS": 2
+          },
+          "dataSource": "static_fallback"
+        }
+      ]
+    },
+    "JPM": {
+      "ticker": "JPM",
+      "name": "JPMorgan Chase & Co.",
+      "cik": "0000019617",
+      "quarters": [
+        {
+          "quarter": "Q4 2025",
+          "endDate": "2025-12-31",
+          "filed": "2026-01-31",
+          "financials": {
+            "Revenues": 110.18639917902823,
+            "NetIncome": 30.942729934710023,
+            "GrossProfit": 60.1245249947117,
+            "OperatingIncome": 37.27765675437469,
+            "CostOfRevenue": 67.2,
+            "OperatingExpenses": 14.9,
+            "EPS": 2.3
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q3 2025",
+          "endDate": "2025-09-30",
+          "filed": "2025-10-31",
+          "financials": {
+            "Revenues": 104.24541400241336,
+            "NetIncome": 29.406961865412637,
+            "GrossProfit": 46.36313235467747,
+            "OperatingIncome": 36.968717683804336,
+            "CostOfRevenue": 64.3,
+            "OperatingExpenses": 14.1,
+            "EPS": 2.2
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q2 2025",
+          "endDate": "2025-06-30",
+          "filed": "2025-07-31",
+          "financials": {
+            "Revenues": 119.63802041192902,
+            "NetIncome": 38.50654279489809,
+            "GrossProfit": 54.78830588332085,
+            "OperatingIncome": 40.770506963386055,
+            "CostOfRevenue": 62.4,
+            "OperatingExpenses": 14.3,
+            "EPS": 2.1
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q1 2025",
+          "endDate": "2025-03-31",
+          "filed": "2025-04-30",
+          "financials": {
+            "Revenues": 96.30438192449631,
+            "NetIncome": 31.662773121614986,
+            "GrossProfit": 50.695121495664154,
+            "OperatingIncome": 40.21190368270227,
+            "CostOfRevenue": 61.6,
+            "OperatingExpenses": 14,
+            "EPS": 2
+          },
+          "dataSource": "static_fallback"
+        }
+      ]
+    },
+    "JNJ": {
+      "ticker": "JNJ",
+      "name": "Johnson & Johnson",
+      "cik": "0000200406",
+      "quarters": [
+        {
+          "quarter": "Q4 2025",
+          "endDate": "2025-12-31",
+          "filed": "2026-01-31",
+          "financials": {
+            "Revenues": 142.48441263365598,
+            "NetIncome": 38.20184697262751,
+            "GrossProfit": 66.14635747165241,
+            "OperatingIncome": 34.367017847271704,
+            "CostOfRevenue": 67.2,
+            "OperatingExpenses": 14.9,
+            "EPS": 2.3
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q3 2025",
+          "endDate": "2025-09-30",
+          "filed": "2025-10-31",
+          "financials": {
+            "Revenues": 137.06326455364695,
+            "NetIncome": 38.2435739201381,
+            "GrossProfit": 48.403289610223126,
+            "OperatingIncome": 43.80862422249483,
+            "CostOfRevenue": 64.3,
+            "OperatingExpenses": 14.1,
+            "EPS": 2.2
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q2 2025",
+          "endDate": "2025-06-30",
+          "filed": "2025-07-31",
+          "financials": {
+            "Revenues": 128.21191745899637,
+            "NetIncome": 33.734974401854366,
+            "GrossProfit": 63.27487299770066,
+            "OperatingIncome": 36.461648944252225,
+            "CostOfRevenue": 62.4,
+            "OperatingExpenses": 14.3,
+            "EPS": 2.1
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q1 2025",
+          "endDate": "2025-03-31",
+          "filed": "2025-04-30",
+          "financials": {
+            "Revenues": 98.05378702243554,
+            "NetIncome": 29.588197714975472,
+            "GrossProfit": 42.83041343606715,
+            "OperatingIncome": 32.95920812356605,
+            "CostOfRevenue": 61.6,
+            "OperatingExpenses": 14,
+            "EPS": 2
+          },
+          "dataSource": "static_fallback"
+        }
+      ]
+    },
+    "WMT": {
+      "ticker": "WMT",
+      "name": "Walmart Inc.",
+      "cik": "0000104169",
+      "quarters": [
+        {
+          "quarter": "Q4 2025",
+          "endDate": "2025-12-31",
+          "filed": "2026-01-31",
+          "financials": {
+            "Revenues": 121.06515414690539,
+            "NetIncome": 41.58708212599748,
+            "GrossProfit": 61.366831190487375,
+            "OperatingIncome": 38.59003651208534,
+            "CostOfRevenue": 67.2,
+            "OperatingExpenses": 14.9,
+            "EPS": 2.3
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q3 2025",
+          "endDate": "2025-09-30",
+          "filed": "2025-10-31",
+          "financials": {
+            "Revenues": 98.45481299348486,
+            "NetIncome": 33.973108602593605,
+            "GrossProfit": 46.53348291539103,
+            "OperatingIncome": 38.272906748957695,
+            "CostOfRevenue": 64.3,
+            "OperatingExpenses": 14.1,
+            "EPS": 2.2
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q2 2025",
+          "endDate": "2025-06-30",
+          "filed": "2025-07-31",
+          "financials": {
+            "Revenues": 127.64518346530379,
+            "NetIncome": 36.010221252045454,
+            "GrossProfit": 49.0306059020062,
+            "OperatingIncome": 35.604989306191044,
+            "CostOfRevenue": 62.4,
+            "OperatingExpenses": 14.3,
+            "EPS": 2.1
+          },
+          "dataSource": "static_fallback"
+        },
+        {
+          "quarter": "Q1 2025",
+          "endDate": "2025-03-31",
+          "filed": "2025-04-30",
+          "financials": {
+            "Revenues": 126.46270342469838,
+            "NetIncome": 28.87226866036363,
+            "GrossProfit": 51.17974105729081,
+            "OperatingIncome": 29.849119454476767,
+            "CostOfRevenue": 61.6,
+            "OperatingExpenses": 14,
+            "EPS": 2
+          },
+          "dataSource": "static_fallback"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "lastUpdated": "2026-02-11T07:14:41.063Z",
+    "count": 10
+  }
+}
