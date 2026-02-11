@@ -47,6 +47,7 @@ const DETECTION_STRATEGIES = {
 
 export default function TheWhy() {
   const [activeStrategy, setActiveStrategy] = useState('delta');
+  const [showExamples, setShowExamples] = useState(false);
   const strategy = DETECTION_STRATEGIES[activeStrategy];
   const StrategyIcon = strategy.icon;
 
@@ -238,14 +239,42 @@ export default function TheWhy() {
             <AlertTriangle className="w-6 h-6 text-yellow-400" />
             <h2 className="text-2xl font-bold text-white">Live Examples from Actual SEC Data</h2>
           </div>
-          <div className="flex items-center space-x-2 px-4 py-2 bg-cyan-900/30 rounded-lg border border-cyan-700/50">
-            <Eye className="w-4 h-4 text-cyan-400" />
-            <span className="text-sm font-semibold text-cyan-400">Showing 8 examples</span>
-          </div>
+          <button
+            onClick={() => setShowExamples(!showExamples)}
+            className="flex items-center space-x-2 px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 rounded-lg border border-gray-700 hover:border-cyan-600 transition-all"
+          >
+            {showExamples ? (
+              <>
+                <Eye className="w-4 h-4 text-cyan-400" />
+                <span className="text-sm font-semibold text-cyan-400">Showing 8 examples</span>
+              </>
+            ) : (
+              <>
+                <Eye className="w-4 h-4 text-gray-400" />
+                <span className="text-sm font-semibold text-gray-400">Show live detection</span>
+              </>
+            )}
+          </button>
         </div>
 
-        {/* Example Claims Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {!showExamples ? (
+          /* Hidden State - Placeholder */
+          <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-12 border border-gray-700 text-center">
+            <Eye className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400 text-lg mb-2">
+              Click "Show live detection" to see real misleading patterns
+            </p>
+            <p className="text-gray-500 text-sm">
+              Generated from actual Q3→Q4 2025 SEC EDGAR data for all 10 companies
+            </p>
+          </div>
+        ) : (
+          /* Shown State - Example Claims Grid */
+          <>
+            <p className="text-gray-400 text-sm">
+              These are real misleading patterns detected from the preloaded SEC EDGAR XBRL data — the same data the verifier uses.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Example 1 - Accurate */}
           <div className="bg-gradient-to-br from-green-900/20 to-gray-900/50 rounded-lg p-5 border border-green-700/50">
             <div className="flex items-start justify-between mb-3">
@@ -415,18 +444,20 @@ export default function TheWhy() {
           </div>
         </div>
 
-        {/* CTA to Explorer */}
-        <div className="text-center mt-6">
-          <p className="text-gray-400 mb-4">
-            Want to explore more? Check out the <strong className="text-cyan-400">Claims Explorer</strong> for interactive verification.
-          </p>
-          <button
-            onClick={() => window.location.href = '#explorer'}
-            className="px-6 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors"
-          >
-            Explore All Claims →
-          </button>
-        </div>
+            {/* CTA to Explorer */}
+            <div className="text-center mt-6">
+              <p className="text-gray-400 mb-4">
+                Want to explore more? Check out the <strong className="text-cyan-400">Claims Explorer</strong> for interactive verification.
+              </p>
+              <button
+                onClick={() => window.location.href = '#explorer'}
+                className="px-6 py-3 bg-cyan-500 hover:bg-cyan-600 text-white font-semibold rounded-lg transition-colors"
+              >
+                Explore All Claims →
+              </button>
+            </div>
+          </>
+        )}
       </section>
 
       {/* Footer */}
