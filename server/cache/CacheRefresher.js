@@ -18,6 +18,9 @@ const WORKER_PATH = join(__dirname, '../../bin/worker.js');
 
 const DEFAULT_CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 
+// Detect if running in serverless environment (Vercel, AWS Lambda, etc.)
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+
 class CacheRefresher {
   constructor({ checkIntervalMs = DEFAULT_CHECK_INTERVAL_MS } = {}) {
     this.checkIntervalMs = checkIntervalMs;
@@ -84,13 +87,19 @@ class CacheRefresher {
 
   // Spawn worker.js as a separate child process
   spawnWorker() {
+    if (isServerless) {
+      console.log('[CacheRefresher] Serverless environment detected - skipping worker spawn (not supported)');
+      this.isRefreshing = false;
+      return;
+    }
+
     if (this.isRefreshing) {
       console.log('[CacheRefresher] Worker already running, skipping spawn');
       return;
     }
 
     this.isRefreshing = true;
-    console.log(`[CacheRefresher] � Spawning worker process: ${WORKER_PATH}`);
+    console.log(`[CacheRefresher] 🔄 Spawning worker process: ${WORKER_PATH}`);
 
     try {
       this.workerProcess = fork(WORKER_PATH, [], {
