@@ -27,6 +27,12 @@ function ClaimExplorer({ companies }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchTotal, setSearchTotal] = useState(0);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchTickerFilter, setSearchTickerFilter] = useState('');
+  const [searchQuarterFilter, setSearchQuarterFilter] = useState('');
+  const [hasSearched, setHasSearched] = useState(false);
 
   const sampleClaims = {
     AAPL: [
@@ -83,17 +89,21 @@ function ClaimExplorer({ companies }) {
     try {
       const result = await apiClient.verifyClaims(selectedTicker, selectedQuarter, claims);
       setVerificationResult(result);
-      setActiveTab('search');
+      // Store verified claims to backend cache
+      try {
+        await apiClient.storeClaims(selectedTicker, selectedQuarter, result.claims || [], result.summary);
+      } catch (storeErr) { console.warn('Failed to store claims:', storeErr); }
     } catch (e) {
       const mockClaims = getMockClaims(selectedTicker, selectedQuarter);
       if (mockClaims && mockClaims.length > 0) {
-        setVerificationResult({
+        const result = {
           ticker: selectedTicker, quarter: selectedQuarter, claims: mockClaims,
           summary: { total: mockClaims.length, verified: mockClaims.filter(c => c.status === 'verified').length, discrepancies: mockClaims.filter(c => c.status === 'minor_discrepancy').length, failed: mockClaims.filter(c => c.status === 'failed').length },
           data_source: 'mock_fallback'
-        });
+        };
+        setVerificationResult(result);
         setVerifyError('Using sample data - API unavailable');
-        setActiveTab('search');
+        try { await apiClient.storeClaims(selectedTicker, selectedQuarter, mockClaims, result.summary); } catch (_) {}
       } else {
         setVerifyError(e?.message || 'Verification failed');
       }
@@ -160,18 +170,27 @@ function ClaimExplorer({ companies }) {
     }));
   }, [verificationResult, selectedTicker, selectedQuarter, companies]);
 
-  const filteredClaims = useMemo(() => {
-    return verifiedClaims.filter((claim) => {
-      const matchesSearch =
-        (claim.text || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (claim.speaker || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (claim.metric || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (claim.companyName || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || claim.status === statusFilter;
-      const matchesSeverity = severityFilter === 'all' || (claim.status === 'discrepant' && claim.severity === severityFilter);
-      return matchesSearch && matchesStatus && matchesSeverity;
-    });
-  }, [verifiedClaims, searchTerm, statusFilter, severityFilter]);
+  // Load claims from backend — only triggered by explicit Search button click
+  const loadSearchClaims = async () => {
+    setSearchLoading(true);
+    setHasSearched(true);
+    try {
+      const params = { limit: 50, offset: 0 };
+      if (searchTickerFilter) params.ticker = searchTickerFilter;
+      if (searchQuarterFilter) params.quarter = searchQuarterFilter;
+      if (statusFilter !== 'all') params.status = statusFilter;
+      if (severityFilter !== 'all') params.severity = severityFilter;
+      if (searchTerm) params.text = searchTerm;
+      const resp = await apiClient.searchClaims(params);
+      setSearchResults(resp?.claims || []);
+      setSearchTotal(resp?.total || 0);
+    } catch (e) {
+      console.warn('Search failed:', e);
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -271,15 +290,42 @@ function ClaimExplorer({ companies }) {
             </p>
           </div>
 
-          {/* Summary after verification */}
+          {/* Summary + inline results after verification */}
           {verificationResult?.summary && (
-            <div className="flex items-center gap-4 px-4 py-3 rounded-lg bg-gray-900 border border-gray-700 text-sm">
-              <span className="text-gray-400 font-semibold">Results:</span>
-              <span className="text-green-400">✓ {verificationResult.summary.accurate} accurate</span>
-              <span className="text-red-400">✗ {verificationResult.summary.discrepant} discrepant</span>
-              <span className="text-gray-500">? {verificationResult.summary.unverifiable} unverifiable</span>
-              <span className="text-cyan-400 font-bold">{verificationResult.summary.accuracyScore}%</span>
-              <button onClick={() => setActiveTab('search')} className="ml-auto text-cyan-400 hover:text-cyan-300 text-xs font-semibold">View results →</button>
+            <div className="space-y-3">
+              <div className="flex items-center gap-4 px-4 py-3 rounded-lg bg-gray-900 border border-gray-700 text-sm">
+                <span className="text-gray-400 font-semibold">Results:</span>
+                <span className="text-green-400">✓ {verificationResult.summary.accurate} accurate</span>
+                <span className="text-red-400">✗ {verificationResult.summary.discrepant} discrepant</span>
+                <span className="text-gray-500">? {verificationResult.summary.unverifiable} unverifiable</span>
+                <span className="text-cyan-400 font-bold">{verificationResult.summary.accuracyScore}%</span>
+                <button onClick={() => setActiveTab('search')} className="ml-auto text-cyan-400 hover:text-cyan-300 text-xs font-semibold">Search all claims →</button>
+              </div>
+              {/* Inline claim cards on verify tab */}
+              <div className="space-y-2">
+                {verifiedClaims.map((claim, i) => {
+                  const sev = SEVERITY_CONFIG[claim.status] || SEVERITY_CONFIG.unverifiable;
+                  return (
+                    <div key={i} className={`rounded-lg p-3 border ${sev.bg} ${sev.border}`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${sev.badgeBg} ${sev.text}`}>{sev.icon} {sev.label}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-semibold">{claim.metric}</span>
+                        {claim.percentDiff != null && (
+                          <span className={`text-[10px] font-bold ml-auto tabular-nums ${sev.text}`}>{claim.percentDiff > 0 ? '+' : ''}{claim.percentDiff.toFixed(1)}%</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-300 leading-relaxed">&quot;{claim.text}&quot;</p>
+                      {claim.actual != null && (
+                        <div className="flex gap-4 mt-1 text-[10px] text-gray-500">
+                          <span>Claimed: <strong className="text-white">{claim.claimed}</strong></span>
+                          <span>Actual: <strong className="text-cyan-400">{claim.actual}</strong></span>
+                          <span className="text-gray-600">{claim.speaker}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -287,136 +333,128 @@ function ClaimExplorer({ companies }) {
 
       {/* ═══ SEARCH TAB ═══ */}
       {activeTab === 'search' && (
-        <div className="space-y-6">
-          {verifiedClaims.length === 0 ? (
+        <div className="space-y-4">
+          {/* Filters */}
+          <div className="card p-4">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3 items-end">
+              <div className="md:col-span-2">
+                <label className="block text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-1">Search</label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-500" />
+                  <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search text, speaker, metric..."
+                    className="w-full pl-8 pr-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-1">Company</label>
+                <select value={searchTickerFilter} onChange={(e) => setSearchTickerFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500">
+                  <option value="">All Companies</option>
+                  {companies?.map((c) => <option key={c.ticker} value={c.ticker}>{c.ticker}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-1">Quarter</label>
+                <select value={searchQuarterFilter} onChange={(e) => setSearchQuarterFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500">
+                  <option value="">All Quarters</option>
+                  {['Q4 2025', 'Q3 2025', 'Q2 2025', 'Q1 2025'].map((q) => <option key={q} value={q}>{q}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] text-gray-500 font-semibold uppercase tracking-wide mb-1">Status</label>
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500">
+                  <option value="all">All Status</option>
+                  <option value="accurate">Accurate</option>
+                  <option value="discrepant">Discrepant</option>
+                  <option value="unverifiable">Unverifiable</option>
+                </select>
+              </div>
+              <div>
+                <button onClick={loadSearchClaims} disabled={searchLoading}
+                  className="w-full px-4 py-2 rounded-lg font-bold text-sm text-black flex items-center justify-center gap-2 transition-colors disabled:opacity-40"
+                  style={{ background: searchLoading ? '#475569' : 'linear-gradient(135deg, #22d3ee, #6366f1)' }}>
+                  <Search className="h-3.5 w-3.5" />
+                  {searchLoading ? 'Searching...' : 'Search'}
+                </button>
+              </div>
+            </div>
+            {hasSearched && (
+              <div className="mt-3 pt-3 border-t border-gray-700 flex items-center justify-between text-xs">
+                <span className="text-gray-500">
+                  Showing <strong className="text-white">{searchResults.length}</strong> of <strong className="text-white">{searchTotal}</strong> stored claims
+                </span>
+                {(searchTerm || searchTickerFilter || searchQuarterFilter || statusFilter !== 'all') && (
+                  <button onClick={() => { setSearchTerm(''); setSearchTickerFilter(''); setSearchQuarterFilter(''); setStatusFilter('all'); setSeverityFilter('all'); setSearchResults([]); setSearchTotal(0); setHasSearched(false); }}
+                    className="text-cyan-400 hover:text-cyan-300 font-semibold">Clear Filters</button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Results */}
+          {!hasSearched ? (
             <div className="card p-12 text-center">
-              <Search className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 text-lg">No verified claims yet</p>
-              <p className="text-gray-500 text-sm mt-2 mb-4">Go to the Verify tab to submit claims first</p>
-              <button onClick={() => setActiveTab('verify')} className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
+              <Search className="h-12 w-12 text-gray-700 mx-auto mb-4" />
+              <p className="text-gray-400 text-lg font-semibold">Search Verified Claims</p>
+              <p className="text-gray-600 text-sm mt-2">Select filters above and click <strong className="text-cyan-400">Search</strong> to find stored claims</p>
+            </div>
+          ) : searchLoading ? (
+            <div className="text-center text-gray-400 py-8 text-sm">Searching claims...</div>
+          ) : searchResults.length === 0 ? (
+            <div className="card p-10 text-center">
+              <Search className="h-10 w-10 text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-400">No claims found matching your filters</p>
+              <p className="text-gray-600 text-xs mt-1 mb-3">Try different filters or run verification on the Verify tab first</p>
+              <button onClick={() => setActiveTab('verify')} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold transition-colors">
                 Go to Verify Claims
               </button>
             </div>
           ) : (
-            <>
-              {/* Filters */}
-              <div className="card p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="lg:col-span-2">
-                    <label className="block text-sm text-gray-400 mb-2 font-medium">Search Claims</label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search by text, speaker, metric, or company..."
-                        className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2 font-medium">Status</label>
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="all">All Status</option>
-                      <option value="accurate">✓ Accurate</option>
-                      <option value="discrepant">✗ Discrepant</option>
-                      <option value="unverifiable">? Unverifiable</option>
-                    </select>
-                  </div>
-                  <div />
-                </div>
-
-                {statusFilter === 'discrepant' && (
-                  <div className="mt-4">
-                    <label className="block text-sm text-gray-400 mb-2 font-medium">Severity Level</label>
-                    <div className="flex flex-wrap gap-2">
-                      {['all', 'high', 'moderate', 'low'].map(severity => (
-                        <button
-                          key={severity}
-                          onClick={() => setSeverityFilter(severity)}
-                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                            severityFilter === severity ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                          }`}
-                        >
-                          {severity.charAt(0).toUpperCase() + severity.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-4 pt-4 border-t border-gray-600 flex items-center justify-between">
-                  <span className="text-sm text-gray-400">
-                    Showing <span className="font-semibold text-white">{filteredClaims.length}</span> of <span className="font-semibold text-white">{verifiedClaims.length}</span> claims
-                  </span>
-                  {(searchTerm || statusFilter !== 'all' || severityFilter !== 'all') && (
-                    <button onClick={() => { setSearchTerm(''); setStatusFilter('all'); setSeverityFilter('all'); }} className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-                      Clear Filters
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Claims List */}
-              <div className="space-y-4">
-                {filteredClaims.length === 0 ? (
-                  <div className="card p-12 text-center">
-                    <Filter className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-400 text-lg">No claims match your filters</p>
-                    <p className="text-gray-500 text-sm mt-2">Try adjusting your search criteria or clearing filters</p>
-                  </div>
-                ) : (
-                  filteredClaims.map((claim) => {
-                    const sev = SEVERITY_CONFIG[claim.status] || SEVERITY_CONFIG.unverifiable;
-                    const isYoY = claim.type === 'yoy_percent' || claim.type === 'yoy_growth';
-                    const fmtClaimed = isYoY ? `${claim.claimed}%` : `${claim.unit === 'billion' ? '$' : ''}${claim.claimed}${claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}`;
-                    const fmtActual = isYoY ? `${claim.actual}%` : `${claim.unit === 'billion' ? '$' : ''}${claim.actual}${claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}`;
-                    return (
-                      <div key={claim.id} className={`rounded-xl p-4 border ${sev.bg} ${sev.border}`}>
-                        <div className="flex items-start justify-between mb-2 flex-wrap gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${sev.badgeBg} ${sev.text}`}>
-                              {sev.icon} {sev.label}
-                            </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 font-semibold">{claim.metric}</span>
-                            {isYoY && <span className="text-[10px] px-2 py-0.5 rounded bg-purple-900/30 text-purple-400 font-semibold">YoY</span>}
-                            <span className="text-[10px] text-gray-500">{claim.quarter}</span>
-                          </div>
-                          {claim.percentDiff != null && (
-                            <span className={`text-xs font-bold tabular-nums ${sev.text}`}>
-                              {claim.percentDiff > 0 ? '+' : ''}{claim.percentDiff.toFixed(1)}% diff
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-200 leading-relaxed mb-2">&quot;{claim.text}&quot;</p>
-                        <div className="text-xs text-gray-400 mb-3">
-                          <strong className="text-gray-300">Speaker:</strong> {claim.speaker} {claim.role ? `(${claim.role})` : ''}
-                        </div>
-                        {claim.actual != null && (
-                          <div className="flex gap-5 px-3 py-2 rounded-lg bg-gray-900/60 text-xs text-gray-400">
-                            <span>Claimed: <strong className="text-white">{fmtClaimed}</strong></span>
-                            <span>SEC Actual: <strong className="text-cyan-400">{fmtActual}</strong></span>
-                          </div>
-                        )}
-                        {claim.flag && (
-                          <p className={`text-xs mt-2 pt-2 border-t border-gray-700/30 italic ${sev.text}`}>
-                            {claim.flag.replace(/_/g, ' ')} — {claim.severity} severity
-                          </p>
-                        )}
-                        {claim.reason && (
-                          <p className="text-xs text-gray-500 mt-1 italic">{claim.reason}</p>
-                        )}
+            <div className="space-y-2">
+              {searchResults.map((claim, i) => {
+                const sev = SEVERITY_CONFIG[claim.status] || SEVERITY_CONFIG.unverifiable;
+                const isYoY = claim.type === 'yoy_percent' || claim.type === 'yoy_growth';
+                const fmtClaimed = isYoY ? `${claim.claimed}%` : `${claim.unit === 'billion' ? '$' : ''}${claim.claimed}${claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}`;
+                const fmtActual = isYoY ? `${claim.actual}%` : `${claim.unit === 'billion' ? '$' : ''}${claim.actual}${claim.unit === 'billion' ? 'B' : claim.unit === 'percent' ? '%' : ''}`;
+                return (
+                  <div key={`${claim.batchId}_${i}`} className={`rounded-xl p-4 border ${sev.bg} ${sev.border}`}>
+                    <div className="flex items-start justify-between mb-2 flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${sev.badgeBg} ${sev.text}`}>
+                          {sev.icon} {sev.label}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-900/30 text-cyan-400 font-bold">{claim.ticker}</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 font-semibold">{claim.metric}</span>
+                        <span className="text-[10px] text-gray-500">{claim.quarter}</span>
                       </div>
-                    );
-                  })
-                )}
-              </div>
-            </>
+                      {claim.percentDiff != null && (
+                        <span className={`text-xs font-bold tabular-nums ${sev.text}`}>
+                          {claim.percentDiff > 0 ? '+' : ''}{claim.percentDiff.toFixed(1)}% diff
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-200 leading-relaxed mb-2">&quot;{claim.text}&quot;</p>
+                    <div className="text-xs text-gray-400 mb-2">
+                      <strong className="text-gray-300">Speaker:</strong> {claim.speaker} {claim.role ? `(${claim.role})` : ''}
+                    </div>
+                    {claim.actual != null && (
+                      <div className="flex gap-5 px-3 py-2 rounded-lg bg-gray-900/60 text-xs text-gray-400">
+                        <span>Claimed: <strong className="text-white">{fmtClaimed}</strong></span>
+                        <span>SEC Actual: <strong className="text-cyan-400">{fmtActual}</strong></span>
+                      </div>
+                    )}
+                    {claim.flag && (
+                      <p className={`text-xs mt-2 pt-2 border-t border-gray-700/30 italic ${sev.text}`}>
+                        {claim.flag.replace(/_/g, ' ')} — {claim.severity} severity
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       )}

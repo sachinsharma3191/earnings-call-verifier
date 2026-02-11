@@ -95,6 +95,21 @@ class APIClient {
     return this.request('/verification/statistics');
   }
 
+  // Claims Store & Search
+  async storeClaims(ticker, quarter, claims, summary) {
+    return this.request('/claims/store', {
+      method: 'POST',
+      body: JSON.stringify({ ticker, quarter, claims, summary }),
+    });
+  }
+
+  async searchClaims({ ticker, quarter, metric, status, severity, speaker, text, limit, offset } = {}) {
+    return this.request('/claims/search', {
+      method: 'POST',
+      body: JSON.stringify({ ticker, quarter, metric, status, severity, speaker, text, limit, offset }),
+    });
+  }
+
   // Discrepancies
   async getTopDiscrepancies(limit = 5) {
     return this.request(`/discrepancies/top?limit=${limit}`);
