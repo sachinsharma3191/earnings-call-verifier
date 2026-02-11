@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { TrendingUp, BarChart3, Search, Info } from 'lucide-react';
+import { TrendingUp, BarChart3, Search, Info, Mic } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import CompanyDetail from './pages/CompanyDetail';
 import ClaimExplorer from './pages/ClaimExplorer';
 import About from './pages/About';
+import TheWhy from './pages/TheWhy';
 import { useCompanies } from './context/CompaniesContext';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
   const navigation = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'explorer', label: 'Claims Explorer', icon: Search },
+    { id: 'why', label: 'The Why', icon: Mic },
     { id: 'about', label: 'About', icon: Info },
   ];
 
@@ -40,6 +42,8 @@ function App() {
         );
       case 'explorer':
         return <ClaimExplorer companies={companies} />;
+      case 'why':
+        return <TheWhy />;
       case 'about':
         return <About />;
       default:

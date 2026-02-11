@@ -6,7 +6,7 @@
 
 | Version | Link | Description |
 |---------|------|-------------|
-| **Claude Artifact** (Lite) | [https://claude.ai/public/artifacts/9fd3ad3b-1ae1-4ebe-b944-dca89c5ae66c](https://claude.ai/public/artifacts/9fd3ad3b-1ae1-4ebe-b944-dca89c5ae66c) · [📖 Guide](./CLAUDE_ARTIFACT.md) | Self-contained single-file React app built by Claude. Runs entirely in-browser with embedded SEC data. See the guide for sharing, publishing, and access info. |
+| **Claude Artifact** (Lite) | [https://claude.ai/public/artifacts/726524d4-b172-45a2-8d2e-a9c24710b3d6](https://claude.ai/public/artifacts/726524d4-b172-45a2-8d2e-a9c24710b3d6) · [📖 Guide](./CLAUDE_ARTIFACT.md) | Self-contained single-file React app built by Claude. Runs entirely in-browser with embedded SEC data. See the guide for sharing, publishing, and access info. |
 | **Full App** (Detailed) | [earnings-call-verifier.vercel.app](https://earnings-call-verifier.vercel.app) | Production deployment with live SEC EDGAR XBRL integration, background cache worker, transcript scraping, real-time claim verification API, and full dashboard. |
 
 **Video Walkthrough**: [Loom link]
