@@ -202,7 +202,6 @@ export default function TheWhy() {
           <div className="flex items-center space-x-3 mb-4">
             <StrategyIcon className="w-6 h-6 text-pink-400" />
             <h3 className="text-xl font-bold text-pink-400">{strategy.title}</h3>
-            <span className="text-xs text-gray-500">Click to expand explanation</span>
           </div>
           <p className="text-gray-300 leading-relaxed mb-6 italic">
             "{strategy.description}"
