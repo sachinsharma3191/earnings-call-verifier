@@ -7,20 +7,31 @@ const __dirname = dirname(__filename);
 
 const DEFAULT_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
+// Detect if running in serverless environment (Vercel, AWS Lambda, etc.)
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+
 // File-based cache that persists across server restarts
 // TTL-based expiry: entries expire after configurable duration
 class FileCache {
   constructor({ ttlMs = DEFAULT_TTL_MS, name = 'companies' } = {}) {
     this.ttlMs = ttlMs;
     this.name = name;
-    this.cacheDir = join(__dirname, '../../.cache');
+    // Use /tmp in serverless environments (only writable directory)
+    this.cacheDir = isServerless 
+      ? join('/tmp', '.cache')
+      : join(__dirname, '../../.cache');
     this.cacheFile = join(this.cacheDir, `${name}.json`);
     this.ensureCacheDir();
   }
 
   ensureCacheDir() {
-    if (!existsSync(this.cacheDir)) {
-      mkdirSync(this.cacheDir, { recursive: true });
+    try {
+      if (!existsSync(this.cacheDir)) {
+        mkdirSync(this.cacheDir, { recursive: true });
+      }
+    } catch (error) {
+      // In serverless, cache dir creation might fail - that's ok, we'll work without cache
+      console.warn(`[FileCache] Could not create cache dir: ${error.message}`);
     }
   }
 
