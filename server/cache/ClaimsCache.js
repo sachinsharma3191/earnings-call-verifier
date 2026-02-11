@@ -43,8 +43,20 @@ class ClaimsCache {
 
   load() {
     try {
-      if (existsSync(this.cacheFile)) {
-        return JSON.parse(readFileSync(this.cacheFile, 'utf-8'));
+      if (isServerless) {
+        // In serverless: check /tmp first (for newly saved claims), then project root (for pre-built)
+        const tmpCacheFile = join(this.writeCacheDir, 'claims.json');
+        const projectCacheFile = join(this.readCacheDir, 'claims.json');
+        
+        const fileToRead = existsSync(tmpCacheFile) ? tmpCacheFile : projectCacheFile;
+        
+        if (existsSync(fileToRead)) {
+          return JSON.parse(readFileSync(fileToRead, 'utf-8'));
+        }
+      } else {
+        if (existsSync(this.cacheFile)) {
+          return JSON.parse(readFileSync(this.cacheFile, 'utf-8'));
+        }
       }
     } catch (e) {
       console.error('[ClaimsCache] Error loading:', e.message);
