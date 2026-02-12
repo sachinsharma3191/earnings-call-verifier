@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, Filter, CheckCircle, XCircle, AlertTriangle, User, Building, PlayCircle, FileText, Zap, Shield } from 'lucide-react';
+import { Search, CheckCircle, XCircle, AlertTriangle, FileText, Zap } from 'lucide-react';
 import { apiClient } from '../utils/apiClient';
-import { getMockClaims, getMockTranscript } from '../data/mockTranscripts';
 import { SEVERITY_CONFIG } from '../data/companyMeta';
 
 const TABS = [
@@ -16,12 +15,13 @@ function ClaimExplorer({ companies }) {
   const [selectedTicker, setSelectedTicker] = useState(companies?.[0]?.ticker || '');
   const [availableQuarters, setAvailableQuarters] = useState([]);
   const [selectedQuarter, setSelectedQuarter] = useState('');
-  const [claimsJson, setClaimsJson] = useState('');
+  const [transcriptText, setTranscriptText] = useState('');
+  const [extractedClaims, setExtractedClaims] = useState([]);
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState(null);
   const [verificationResult, setVerificationResult] = useState(null);
   const [quartersData, setQuartersData] = useState([]);
-  const [transcriptSource, setTranscriptSource] = useState(null);
+  const [extracting, setExtracting] = useState(false);
 
   // ── Search tab state ──
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,31 +34,27 @@ function ClaimExplorer({ companies }) {
   const [searchQuarterFilter, setSearchQuarterFilter] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
 
-  const sampleClaims = {
-    AAPL: [
-      { speaker: "Tim Cook", role: "CEO", text: "Our Q4 revenue came in at $95.3 billion", metric: "Revenue", claimed: 95.3, unit: "billion" },
-      { speaker: "Tim Cook", role: "CEO", text: "Revenue grew 6% year over year", metric: "Revenue", claimed: 6, unit: "percent", type: "yoy_percent" },
-      { speaker: "Luca Maestri", role: "CFO", text: "Operating income came in at $31.5 billion", metric: "Operating Income", claimed: 31.5, unit: "billion" },
-      { speaker: "Tim Cook", role: "CEO", text: "Our gross margin expanded to 46.2%", metric: "Gross Margin", claimed: 46.2, unit: "percent" }
-    ],
-    NVDA: [
-      { speaker: "Jensen Huang", role: "CEO", text: "Revenue for the quarter was $22.1 billion", metric: "Revenue", claimed: 22.1, unit: "billion" },
-      { speaker: "Jensen Huang", role: "CEO", text: "Revenue was up 265% from a year ago", metric: "Revenue", claimed: 265, unit: "percent", type: "yoy_percent" },
-      { speaker: "Colette Kress", role: "CFO", text: "Net income grew 33% year over year", metric: "Net Income", claimed: 33, unit: "percent", type: "yoy_percent" },
-      { speaker: "Colette Kress", role: "CFO", text: "Gross margin came in at 76.2%", metric: "Gross Margin", claimed: 76.2, unit: "percent" }
-    ],
-    MSFT: [
-      { speaker: "Satya Nadella", role: "CEO", text: "Revenue was $62.0 billion", metric: "Revenue", claimed: 62.0, unit: "billion" },
-      { speaker: "Satya Nadella", role: "CEO", text: "Revenue grew 18% year-over-year", metric: "Revenue", claimed: 18, unit: "percent", type: "yoy_percent" },
-      { speaker: "Amy Hood", role: "CFO", text: "Operating income increased to $27.2 billion", metric: "Operating Income", claimed: 27.2, unit: "billion" },
-      { speaker: "Amy Hood", role: "CFO", text: "EPS grew 21% year over year", metric: "EPS", claimed: 21, unit: "percent", type: "yoy_percent" }
-    ]
-  };
-
-  const loadSampleClaims = () => {
-    const samples = sampleClaims[selectedTicker] || sampleClaims.AAPL;
-    setClaimsJson(JSON.stringify(samples, null, 2));
+  // Extract claims from current transcript (backend regex + heuristics)
+  const handleExtract = async () => {
+    if (!selectedTicker || !selectedQuarter) {
+      setVerifyError('Please select a company and quarter');
+      return;
+    }
+    if (!transcriptText || transcriptText.trim().length < 20) {
+      setVerifyError('Transcript is empty or too short to extract claims');
+      return;
+    }
+    setExtracting(true);
     setVerifyError(null);
+    setExtractedClaims([]);
+    try {
+      const resp = await apiClient.extractClaims(transcriptText, selectedTicker, selectedQuarter);
+      setExtractedClaims(resp?.claims || []);
+    } catch (e) {
+      setVerifyError(e?.message || 'Extraction failed');
+    } finally {
+      setExtracting(false);
+    }
   };
 
   const handleVerify = async () => {
@@ -66,47 +62,19 @@ function ClaimExplorer({ companies }) {
       setVerifyError('Please select a company and quarter');
       return;
     }
-    let claims;
-    // Auto-use sample claims if no JSON provided
-    if (!claimsJson || claimsJson.trim() === '' || claimsJson.trim() === '[]') {
-      claims = sampleClaims[selectedTicker] || sampleClaims.AAPL;
-      setClaimsJson(JSON.stringify(claims, null, 2));
-    } else {
-      try {
-        claims = JSON.parse(claimsJson);
-        if (!Array.isArray(claims) || claims.length === 0) {
-          claims = sampleClaims[selectedTicker] || sampleClaims.AAPL;
-          setClaimsJson(JSON.stringify(claims, null, 2));
-        }
-      } catch (e) {
-        setVerifyError('Invalid JSON format');
-        return;
-      }
-    }
     setVerifying(true);
     setVerifyError(null);
     setVerificationResult(null);
     try {
-      const result = await apiClient.verifyClaims(selectedTicker, selectedQuarter, claims);
+      // Prefer verifying directly from transcript so backend can extract + verify in one step
+      const result = await apiClient.verifyTranscript(transcriptText, selectedTicker, selectedQuarter);
       setVerificationResult(result);
       // Store verified claims to backend cache
       try {
         await apiClient.storeClaims(selectedTicker, selectedQuarter, result.claims || [], result.summary);
       } catch (storeErr) { console.warn('Failed to store claims:', storeErr); }
     } catch (e) {
-      const mockClaims = getMockClaims(selectedTicker, selectedQuarter);
-      if (mockClaims && mockClaims.length > 0) {
-        const result = {
-          ticker: selectedTicker, quarter: selectedQuarter, claims: mockClaims,
-          summary: { total: mockClaims.length, verified: mockClaims.filter(c => c.status === 'verified').length, discrepancies: mockClaims.filter(c => c.status === 'minor_discrepancy').length, failed: mockClaims.filter(c => c.status === 'failed').length },
-          data_source: 'mock_fallback'
-        };
-        setVerificationResult(result);
-        setVerifyError('Using sample data - API unavailable');
-        try { await apiClient.storeClaims(selectedTicker, selectedQuarter, mockClaims, result.summary); } catch (_) {}
-      } else {
-        setVerifyError(e?.message || 'Verification failed');
-      }
+      setVerifyError(e?.message || 'Verification failed');
     } finally {
       setVerifying(false);
     }
@@ -128,18 +96,11 @@ function ClaimExplorer({ companies }) {
           const q = quarters.map((x) => x.quarter);
           setAvailableQuarters(q);
           setSelectedQuarter((prev) => prev || q?.[0] || '');
-          if (quarters.length > 0) {
-            const src = quarters[0].transcript || quarters[0].transcriptSource;
-            if (src) setTranscriptSource(src);
-          }
         }
       } catch (e) {
         if (!cancelled) {
-          const mockQuarters = ['Q4 2025', 'Q3 2025', 'Q2 2025', 'Q1 2025'];
-          setAvailableQuarters(mockQuarters);
-          setSelectedQuarter((prev) => prev || mockQuarters[0] || '');
-          const mockSource = getMockTranscript(selectedTicker, mockQuarters[0]);
-          setTranscriptSource(mockSource);
+          setAvailableQuarters([]);
+          setSelectedQuarter('');
         }
       }
     }
@@ -148,15 +109,25 @@ function ClaimExplorer({ companies }) {
   }, [selectedTicker]);
 
   useEffect(() => {
-    if (!selectedQuarter || !quartersData.length) return;
-    const quarterData = quartersData.find(q => q.quarter === selectedQuarter);
-    const src = quarterData?.transcript || quarterData?.transcriptSource;
-    if (src) {
-      setTranscriptSource(src);
-    } else {
-      const mockSource = getMockTranscript(selectedTicker, selectedQuarter);
-      setTranscriptSource(mockSource);
+    let cancelled = false;
+    async function loadTranscript() {
+      if (!selectedTicker || !selectedQuarter) return;
+      setTranscriptText('');
+      setExtractedClaims([]);
+      try {
+        const resp = await apiClient.getTranscript(selectedTicker, selectedQuarter);
+        if (!cancelled) setTranscriptText(resp?.transcriptText || '');
+      } catch (e) {
+        try {
+          const m = await apiClient.getQuarterMetrics(selectedTicker, selectedQuarter);
+          if (!cancelled) setTranscriptText(m?.transcript || '');
+        } catch (_) {
+          if (!cancelled) setTranscriptText('');
+        }
+      }
     }
+    loadTranscript();
+    return () => { cancelled = true; };
   }, [selectedQuarter, quartersData, selectedTicker]);
 
   const verifiedClaims = useMemo(() => {
@@ -271,6 +242,36 @@ function ClaimExplorer({ companies }) {
             </button>
           </div>
 
+          {/* Transcript input + actions */}
+          <div className="space-y-2">
+            <label className="block text-[11px] text-gray-500 font-semibold uppercase tracking-wide">Transcript</label>
+            <textarea
+              value={transcriptText}
+              onChange={(e) => setTranscriptText(e.target.value)}
+              rows={10}
+              placeholder="Transcript text will load here if available. You can edit or paste your own."
+              className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleExtract}
+                disabled={extracting || !transcriptText}
+                className="px-4 py-2 rounded-lg font-bold text-xs text-black flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: extracting ? '#475569' : 'linear-gradient(135deg, #06b6d4, #3b82f6)' }}
+              >
+                <FileText className="h-4 w-4" /> {extracting ? 'Extracting...' : 'Extract Claims'}
+              </button>
+              <button
+                onClick={handleVerify}
+                disabled={verifying || !selectedTicker || !selectedQuarter}
+                className="px-4 py-2 rounded-lg font-bold text-xs text-black flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: verifying ? '#475569' : 'linear-gradient(135deg, #22d3ee, #6366f1)' }}
+              >
+                <Zap className="h-4 w-4" /> {verifying ? 'Verifying...' : 'Verify Claims'}
+              </button>
+            </div>
+          </div>
+
           {/* Loading indicator */}
           {verifying && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-sm text-cyan-400">
@@ -286,9 +287,27 @@ function ClaimExplorer({ companies }) {
           {/* How it works */}
           <div className="px-4 py-3 rounded-lg bg-gray-900 border border-gray-800">
             <p className="text-xs text-gray-500 leading-relaxed">
-              <strong className="text-gray-400">How it works:</strong> Uses sample earnings call claims for the selected company based on actual SEC financial data, then independently verifies each claim against the structured XBRL filings. Claims are classified as Accurate, Minor Discrepancy, Major Discrepancy, Misleading, or Unverifiable.
+              <strong className="text-gray-400">How it works:</strong> Transcript → extract quantitative claims (regex + heuristics) → verify each claim against cached SEC EDGAR XBRL metrics. No hardcoded claims.
             </p>
           </div>
+
+          {/* Extracted claims preview */}
+          {extractedClaims && extractedClaims.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-xs text-gray-400">Extracted {extractedClaims.length} claims</div>
+              <div className="space-y-2">
+                {extractedClaims.map((c, i) => (
+                  <div key={i} className="rounded-lg p-3 border bg-gray-900 border-gray-700">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 font-semibold">{c.metric}</span>
+                      {c.type && <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-900/30 text-cyan-400 font-semibold">{c.type}</span>}
+                    </div>
+                    <p className="text-xs text-gray-300 leading-relaxed">"{c.text}"</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Summary + inline results after verification */}
           {verificationResult?.summary && (

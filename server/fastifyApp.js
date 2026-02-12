@@ -7,6 +7,7 @@ import { cacheRefresher } from "./cache/CacheRefresher.js";
 import { claimsCache } from "./cache/ClaimsCache.js";
 import { TICKER_TO_CIK, COMPANIES_LIST } from "./constants/index.js";
 import { verifySingleClaim, verifyYoYClaim, calculateSummary } from "./services/VerificationService.js";
+import { extractClaimsFromTranscript } from "./services/ClaimExtractionService.js";
 
 // Helper: get company data from aggregate cache first, then fileCache fallback
 function getCachedCompany(ticker) {
@@ -56,8 +57,8 @@ async function buildApp() {
     }
   });
 
-  // ─── GET /api/discrepancies/top ─── Top discrepancies computed from real cached data
-  app.get("/api/discrepancies/top", async (req, reply) => {
+  // ─── GET /api/discrepancies/simulated/top ─── Simulated discrepancies (clearly labeled)
+  app.get("/api/discrepancies/simulated/top", async (req, reply) => {
     const limit = Math.min(parseInt(req.query.limit) || 5, 20);
 
     // Executive speakers per company (realistic)
@@ -136,7 +137,14 @@ async function buildApp() {
     allDiscrepancies.sort((a, b) => b.pctDiff - a.pctDiff);
     const top = allDiscrepancies.slice(0, limit).map((d, i) => ({ rank: i + 1, ...d }));
 
-    return { discrepancies: top, total: allDiscrepancies.length, limit };
+    return { discrepancies: top, total: allDiscrepancies.length, limit, isSimulated: true };
+  });
+
+  // Backward-compat: keep old endpoint but label as simulated
+  app.get("/api/discrepancies/top", async (req, reply) => {
+    const res = await app.inject({ method: 'GET', url: `/api/discrepancies/simulated/top?limit=${req.query.limit || ''}` });
+    reply.code(res.statusCode);
+    try { return JSON.parse(res.payload); } catch (_) { return { error: 'failed' }; }
   });
 
   // ─── Health ───
@@ -242,26 +250,81 @@ async function buildApp() {
     };
   });
 
+  // ─── GET /api/transcripts/:ticker/:quarter ─── Return cached transcript text if available
+  app.get("/api/transcripts/:ticker/:quarter", async (req, reply) => {
+    const ticker = req.params.ticker.toUpperCase();
+    const quarter = decodeURIComponent(req.params.quarter);
+    const cached = getCachedCompany(ticker);
+
+    if (!cached) {
+      reply.code(404);
+      return { error: `Company ${ticker} not found` };
+    }
+
+    const qData = cached.quarters?.find(q => q.quarter === quarter);
+    if (!qData || !qData.transcript) {
+      reply.code(404);
+      return { error: `Transcript not found for ${ticker} ${quarter}` };
+    }
+
+    return {
+      ticker,
+      quarter,
+      transcriptText: qData.transcript,
+      source: 'cache'
+    };
+  });
+
+  // ─── POST /api/claims/extract ─── Extract claims from transcript (regex+heuristics)
+  app.post("/api/claims/extract", async (req, reply) => {
+    try {
+      const { ticker, quarter, transcriptText, transcript } = req.body || {};
+      const text = transcriptText || transcript;
+      if (!text || typeof text !== 'string') {
+        reply.code(400);
+        return { error: "transcriptText (string) is required" };
+      }
+      const claims = extractClaimsFromTranscript(text);
+      return {
+        ticker: ticker?.toUpperCase?.() || null,
+        quarter: quarter || null,
+        total_claims: claims.length,
+        claims,
+        meta: { method: 'regex+heuristics' }
+      };
+    } catch (err) {
+      req.log.error(err);
+      reply.code(500);
+      return { error: "Extraction failed", details: err.message };
+    }
+  });
+
   // ─── POST /api/verification/verify ─── Verify claims against cached data (fast filter)
   // Supports both absolute claims (e.g. "Revenue was $95B") and YoY growth claims (e.g. "Revenue grew 15% YoY")
   // YoY claims must have type: "yoy_percent" or "yoy_growth"
   app.post("/api/verification/verify", async (req, reply) => {
     try {
-      const { ticker, quarter, claims } = req.body;
+      const { ticker, quarter, claims, transcriptText, transcript } = req.body;
 
       if (!ticker || !quarter) {
         reply.code(400);
         return { error: "Missing required fields: ticker, quarter" };
       }
 
-      if (!claims || !Array.isArray(claims) || claims.length === 0) {
+      let useClaims = Array.isArray(claims) ? claims : [];
+      // If no claims provided, but transcript provided, extract first
+      const text = transcriptText || transcript;
+      if ((!useClaims || useClaims.length === 0) && text && typeof text === 'string') {
+        useClaims = extractClaimsFromTranscript(text);
+      }
+      if (!useClaims || useClaims.length === 0) {
         reply.code(400);
-        return { error: "claims must be a non-empty array" };
+        return { error: "Provide claims[] or transcriptText to extract from" };
       }
 
       // Validate each claim has required fields
-      for (let i = 0; i < claims.length; i++) {
-        const c = claims[i];
+      for (let i = 0; i < useClaims.length; i++) {
+        const c = useClaims[i];
         if (!c.metric || c.claimed == null) {
           reply.code(400);
           return { error: `Claim ${i} missing required fields: metric, claimed` };
@@ -295,7 +358,7 @@ async function buildApp() {
       const priorQData = priorYearQuarter ? cached.quarters.find(q => q.quarter === priorYearQuarter) : null;
       const priorMetrics = priorQData?.financials ? extractMetrics(priorQData.financials) : null;
 
-      const verifiedClaims = claims.map(claim => {
+      const verifiedClaims = useClaims.map(claim => {
         const claimType = (claim.type ?? '').toLowerCase();
         if (claimType === 'yoy_percent' || claimType === 'yoy_growth') {
           return verifyYoYClaim(claim, metrics, priorMetrics);
@@ -305,7 +368,7 @@ async function buildApp() {
 
       const summary = calculateSummary(verifiedClaims);
 
-      return {
+      const resp = {
         ticker: upperTicker,
         quarter,
         total_claims: verifiedClaims.length,
@@ -319,6 +382,11 @@ async function buildApp() {
           prior_year_quarter: priorYearQuarter
         }
       };
+
+      if (text) {
+        resp.extraction = { total_claims: useClaims.length, method: 'regex+heuristics' };
+      }
+      return resp;
     } catch (error) {
       req.log.error('Verification error:', error);
       reply.code(400);

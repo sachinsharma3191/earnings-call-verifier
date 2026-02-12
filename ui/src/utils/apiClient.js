@@ -59,11 +59,16 @@ class APIClient {
     return this.request(`/companies/${ticker}/metrics/${encodedQuarter}`);
   }
 
+  async getTranscript(ticker, quarter) {
+    const encodedQuarter = encodeURIComponent(quarter);
+    return this.request(`/transcripts/${ticker}/${encodedQuarter}`);
+  }
+
   // Claims
-  async extractClaims(transcript, ticker, quarter) {
+  async extractClaims(transcriptText, ticker, quarter) {
     return this.request('/claims/extract', {
       method: 'POST',
-      body: JSON.stringify({ transcript, ticker, quarter }),
+      body: JSON.stringify({ transcriptText, ticker, quarter }),
     });
   }
 
@@ -80,10 +85,10 @@ class APIClient {
     });
   }
 
-  async verifyTranscript(transcript, ticker, quarter) {
-    return this.request('/verification/verify-transcript', {
+  async verifyTranscript(transcriptText, ticker, quarter) {
+    return this.request('/verification/verify', {
       method: 'POST',
-      body: JSON.stringify({ transcript, ticker, quarter }),
+      body: JSON.stringify({ transcriptText, ticker, quarter }),
     });
   }
 
